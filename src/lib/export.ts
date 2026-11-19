@@ -8,13 +8,13 @@ async function waitForImages(node: HTMLElement) {
 }
 
 /**
- * The card as a crisp PNG. PNG keeps text perfectly sharp (no blur around letters), and
- * ~1600 px wide is what WhatsApp keeps when it sends a photo, so it isn't shrunk much.
+ * The card as a crisp PNG. PNG keeps text perfectly sharp (no blur around letters), and it is
+ * rendered at 3× (about 2460 px wide) so it stays clear when zoomed in or sent as an HD photo.
  */
 export async function buildCardImage(node: HTMLElement, baseName: string): Promise<File> {
   const { toBlob } = await import("html-to-image");
   await waitForImages(node);
-  const opts = { pixelRatio: 2, backgroundColor: "#ffffff", cacheBust: true };
+  const opts = { pixelRatio: 3, backgroundColor: "#ffffff", cacheBust: true };
   // First call warms up font/image embedding (some browsers miss them on the first pass).
   await toBlob(node, opts).catch(() => undefined);
   const blob = await toBlob(node, opts);
