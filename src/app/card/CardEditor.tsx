@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Download, Home, Lock, Share } from "@/components/icons";
 import { SadhanaCard } from "@/components/SadhanaCard";
-import { FormatMenu, InfoButton, PrivacyNotice } from "@/components/ui";
+import { WeekReport } from "@/components/WeekReport";
+import { InfoButton, PrivacyNotice } from "@/components/ui";
 import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
 import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
@@ -269,12 +270,12 @@ export default function CardEditor() {
                 <Lock className="h-3.5 w-3.5" /> Opens {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
               </span>
             )}
-            <FormatMenu title="Send to mentor as…" onPick={(f) => void prepareShare(f)} disabled={!card || !!busy || !unlock.open} className="btn-outline">
+            <button type="button" onClick={() => void prepareShare("pdf")} disabled={!card || !!busy || !unlock.open} className="btn-outline">
               <Share className="h-4 w-4" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
-            </FormatMenu>
-            <FormatMenu title="Download as…" onPick={(f) => void download(f)} disabled={!card || !!busy || !unlock.open} className="btn-solid">
+            </button>
+            <button type="button" onClick={() => void download("pdf")} disabled={!card || !!busy || !unlock.open} className="btn-solid">
               <Download className="h-4 w-4" /> {busy === "download" ? "Preparing…" : "Download"}
-            </FormatMenu>
+            </button>
           </div>
           <InfoButton />
         </div>
@@ -322,22 +323,18 @@ export default function CardEditor() {
         }`}
       >
         <div className="mx-auto flex max-w-md items-center gap-2">
-          <FormatMenu
-            title="Download as…"
-            onPick={(f) => void download(f)}
+          <button type="button" onClick={() => void download("pdf")}
             disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-brand disabled:opacity-50"
           >
             <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
-          </FormatMenu>
-          <FormatMenu
-            title="Send to mentor as…"
-            onPick={(f) => void prepareShare(f)}
+          </button>
+          <button type="button" onClick={() => void prepareShare("pdf")}
             disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
           >
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
-          </FormatMenu>
+          </button>
         </div>
         {!unlock.open && unlock.left && (
           <p className="mx-auto mt-1.5 flex max-w-md items-center justify-center gap-1 text-[12px] text-ink/60" aria-live="off">
@@ -355,7 +352,7 @@ export default function CardEditor() {
       {/* ───────── Static copy used for PDF / image / print ───────── */}
       {card && (
         <div className="export-host" aria-hidden inert>
-          <SadhanaCard ref={exportRef} card={card} mode="export" />
+          <WeekReport ref={exportRef} card={card} />
         </div>
       )}
     </main>

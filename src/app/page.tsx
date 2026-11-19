@@ -8,11 +8,11 @@ import { useAccount } from "@/components/AccountProvider";
 import { ChevronLeft, ChevronRight, Download, MoreVertical, Pencil, Share, Trash } from "@/components/icons";
 import { ConfirmDialog } from "@/components/Modal";
 import { Popover } from "@/components/pickers";
-import { SadhanaCard } from "@/components/SadhanaCard";
+import { WeekReport } from "@/components/WeekReport";
 import { ShareDialog } from "@/components/ShareDialog";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StreakCard } from "@/components/StreakCard";
-import { FormatOptions, InfoButton } from "@/components/ui";
+import { InfoButton } from "@/components/ui";
 import { LockedError } from "@/lib/account";
 import { cardFileName, cardHref, cardProgress, mergeProfile } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
@@ -101,7 +101,7 @@ export default function HomePage() {
   const existing = pickedWeek ? cards?.find((c) => c.weekStart === pickedWeek) : undefined;
 
   // ⋮ menu on a saved card
-  const [menu, setMenu] = useState<{ card: WeekCard; el: HTMLElement; step?: "share" | "download" } | null>(null);
+  const [menu, setMenu] = useState<{ card: WeekCard; el: HTMLElement } | null>(null);
   // PDF export: the card is rendered off-screen, then turned into a PDF.
   const [exporting, setExporting] = useState<{ card: WeekCard; kind: "download" | "share"; format: CardFormat } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -314,12 +314,9 @@ export default function HomePage() {
         anchor={menu?.el ?? null}
         open={!!menu}
         onClose={() => setMenu(null)}
-        title={menu ? (menu.step === "share" ? "Send to mentor as…" : menu.step === "download" ? "Download as…" : formatWeekRange(menu.card.weekStart)) : ""}
+        title={menu ? formatWeekRange(menu.card.weekStart) : ""}
       >
-        {menu?.step ? (
-          <FormatOptions onPick={(f) => void startExport(menu.card, menu.step!, f)} />
-        ) : (
-          menu && (
+        {menu && (
             <div className="min-w-[240px] space-y-1">
               <MenuItem
                 icon={<Pencil className="h-[18px] w-[18px]" />}
@@ -330,16 +327,16 @@ export default function HomePage() {
               <MenuItem
                 icon={<Share className="h-[18px] w-[18px]" />}
                 title="Send to mentor"
-                sub={menuLock ?? "As an image or PDF, on WhatsApp"}
+                sub={menuLock ?? "Share the PDF on WhatsApp"}
                 disabled={!!menuLock}
-                onClick={() => setMenu({ ...menu, step: "share" })}
+                onClick={() => void startExport(menu.card, "share", "pdf")}
               />
               <MenuItem
                 icon={<Download className="h-[18px] w-[18px]" />}
                 title="Download"
-                sub={menuLock ?? "Save as an image or PDF"}
+                sub={menuLock ?? "Save the PDF to this phone"}
                 disabled={!!menuLock}
-                onClick={() => setMenu({ ...menu, step: "download" })}
+                onClick={() => void startExport(menu.card, "download", "pdf")}
               />
               <MenuItem
                 danger
@@ -354,8 +351,7 @@ export default function HomePage() {
                 }}
               />
             </div>
-          )
-        )}
+          )}
       </Popover>
 
       <ShareDialog file={share?.file ?? null} text={share?.text ?? ""} onClose={() => setShare(null)} />
@@ -363,7 +359,7 @@ export default function HomePage() {
       {/* Off-screen copy used to build the PDF */}
       {exporting && (
         <div className="export-host" aria-hidden inert>
-          <SadhanaCard ref={exportRef} card={exporting.card} mode="export" />
+          <WeekReport ref={exportRef} card={exporting.card} />
         </div>
       )}
 
