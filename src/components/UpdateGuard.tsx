@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const KEY = "sadhana-card:reloaded-for-update";
 
@@ -43,4 +43,27 @@ export function UpdateGuard() {
     };
   }, []);
   return null;
+}
+
+/** A small strip at the top while the phone is offline: changes are kept and uploaded later. */
+export function OfflineNotice() {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const update = () => setOffline(navigator.onLine === false);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  if (!offline) return null;
+  return (
+    <div role="status" className="fixed inset-x-0 top-0 z-[80] flex justify-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none">
+      <div className="rounded-full bg-ink/90 px-3.5 py-1.5 text-center text-[12px] font-medium text-white shadow-lg">
+        You&apos;re offline. Your changes are kept on this phone.
+      </div>
+    </div>
+  );
 }

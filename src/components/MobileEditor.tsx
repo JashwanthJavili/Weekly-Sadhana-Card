@@ -28,9 +28,9 @@ export function MobileEditor(props: { card: WeekCard; today?: string; locked: bo
   return (
     <div className="space-y-3 pb-6">
       {/* Slim header */}
-      <div className="rounded-2xl bg-brand px-4 py-3 text-center text-white shadow-sm">
-        <div className="font-serif text-[24px] leading-none font-bold whitespace-nowrap">Sadhana Card</div>
-        <img src="/icons/flourish.png" alt="" className="mx-auto mt-1.5 h-[8px] w-[140px] opacity-90" />
+      <div className="rounded-2xl bg-brand px-4 py-2.5 text-center text-white shadow-sm">
+        <div className="font-serif text-[22px] leading-none font-bold whitespace-nowrap">Sadhana Card</div>
+        <img src="/icons/flourish.png" alt="" className="mx-auto mt-1.5 h-[7px] w-[130px] opacity-90" />
       </div>
 
       {/* Your details */}
@@ -315,7 +315,7 @@ function SevaRow(props: { icon: React.ReactNode; title: string; label: string; v
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && close(true)}
           maxLength={40}
-          placeholder="What seva did you do today?"
+          placeholder="What seva did you offer today?"
           className="w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-[16px] text-ink outline-none placeholder:text-ink/35 focus:border-brand"
         />
         <button

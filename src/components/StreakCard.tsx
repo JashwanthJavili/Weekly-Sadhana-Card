@@ -8,9 +8,9 @@ import { DAY_GOAL, type StreakInfo } from "@/lib/streak";
 const LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
 function message(s: StreakInfo): string {
-  if (s.current === 0) return s.best > 0 ? `Best ever: ${s.best} days. Start again today!` : `Fill ${DAY_GOAL}+ items today to start a streak`;
+  if (s.current === 0) return s.best > 0 ? `Best: ${s.best} days. Begin again today` : `Fill ${DAY_GOAL}+ items today to begin`;
   if (!s.doneToday) return "Fill today's card to keep it going";
-  if (s.current >= s.best && s.current > 1) return "Your best streak yet — keep going!";
+  if (s.current >= s.best && s.current > 1) return "Your best streak so far. Keep going!";
   return `Best: ${s.best} day${s.best === 1 ? "" : "s"}`;
 }
 
@@ -27,20 +27,20 @@ export function StreakCard({ info }: { info: StreakInfo }) {
           const el = e.currentTarget;
           setAnchor((a) => (a ? null : el));
         }}
-        className="flex w-full shrink-0 items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5"
+        className="flex w-full shrink-0 items-center gap-2.5 rounded-2xl bg-white px-3 py-2.5 text-left shadow-sm ring-1 ring-black/5 active:bg-band"
       >
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
             active ? "bg-gradient-to-br from-orange-500 to-amber-400 text-white shadow-md shadow-orange-500/30" : "bg-black/[0.05] text-ink/30"
           }`}
         >
           <Flame className="h-6 w-6" />
         </span>
-        <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 flex-1 flex-col">
           <span className="block text-[15px] font-semibold whitespace-nowrap text-ink">
-            <span className="text-[20px] font-bold tabular-nums">{info.current}</span> day streak
+            <span className="text-[19px] font-bold tabular-nums">{info.current}</span> day streak
           </span>
-          <span className="line-clamp-2 block text-[12px] leading-snug text-ink/60">{message(info)}</span>
+          <span className="line-clamp-2 text-[11.5px] leading-snug text-ink/60">{message(info)}</span>
         </span>
         <span className="flex shrink-0 gap-[3px]" aria-label="This week">
           {LETTERS.map((l, i) => {
@@ -50,7 +50,7 @@ export function StreakCard({ info }: { info: StreakInfo }) {
               <span key={i} className="flex flex-col items-center gap-0.5">
                 <span className={`text-[9px] font-semibold ${today ? "text-brand" : "text-ink/40"}`}>{l}</span>
                 <span
-                  className={`h-4 w-4 rounded-full ${
+                  className={`h-[15px] w-[15px] rounded-full max-[359px]:h-3 max-[359px]:w-3 ${
                     done ? "bg-gradient-to-br from-orange-500 to-amber-400" : today ? "ring-2 ring-brand/50" : "bg-black/[0.06]"
                   }`}
                 />

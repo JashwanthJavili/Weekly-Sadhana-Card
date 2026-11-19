@@ -7,11 +7,11 @@ import "@fontsource/poppins/latin-500.css";
 import "@fontsource/poppins/latin-600.css";
 import "./globals.css";
 import { AccountProvider } from "@/components/AccountProvider";
-import { UpdateGuard } from "@/components/UpdateGuard";
+import { OfflineNotice, UpdateGuard } from "@/components/UpdateGuard";
 
 export const metadata: Metadata = {
   title: "Youth Sadhana Card",
-  description: "Fill in your weekly Sadhana Card, save it and download it as PDF.",
+  description: "Fill in your weekly Sadhana Card day by day and share it with your mentor.",
 };
 
 export const viewport: Viewport = {
@@ -26,6 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className="antialiased">
         <UpdateGuard />
+        <OfflineNotice />
         <AccountProvider>{children}</AccountProvider>
       </body>
     </html>

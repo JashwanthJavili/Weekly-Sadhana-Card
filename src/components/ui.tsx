@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { EyeOff, KeyIcon, Lock, ShieldCheck, Smartphone, UserIcon } from "@/components/icons";
 import { CloseFab, Popover } from "@/components/pickers";
+import { formatWeekRange } from "@/lib/dates";
+import { opensAt } from "@/lib/useUnlock";
 
 /** Small round "i" button that opens help text (popover on desktop, bottom sheet on phones). */
 export function InfoButton({
@@ -56,10 +58,10 @@ function HelpContent() {
   return (
     <div className="max-w-sm space-y-4 text-[14px]">
       <ol className="space-y-3">
-        {step(1, <>Pick a <b className="text-ink">day</b>, then tap any item to fill it.</>)}
-        {step(2, <>For times, <b className="text-ink">scroll the wheels</b> and tap Done.</>)}
-        {step(3, <>Japa class: tap <b className="text-ink">Yes</b> or <b className="text-ink">No</b>. Seva &amp; reflections: just type.</>)}
-        {step(4, <>It saves by itself. At week end, tap <b className="text-ink">Complete</b> and download.</>)}
+        {step(1, <>Choose a <b className="text-ink">day</b>, then tap any item to fill it in.</>)}
+        {step(2, <>For times and durations, <b className="text-ink">scroll the wheels</b> and tap Done.</>)}
+        {step(3, <>For Japa class, tap <b className="text-ink">Yes</b> or <b className="text-ink">No</b>. For Seva and the reflections, simply type.</>)}
+        {step(4, <>Your card saves automatically. After the week ends, on Monday, tap <b className="text-ink">Send to mentor</b>.</>)}
       </ol>
       <PrivacyBadge />
     </div>
@@ -84,35 +86,35 @@ function SecurityContent() {
           <Lock className="h-5 w-5" />
         </span>
         <span className="text-[13px] leading-snug">
-          <b className="block text-[15px]">End-to-end encrypted</b>
+          <b className="block text-[15px]">Your cards are private</b>
           Only you can read your Sadhana Cards.
         </span>
       </div>
       <ul className="space-y-4">
         {item(
           <ShieldCheck className="h-5 w-5" />,
-          "Locked on your device",
-          <>Before anything is saved, your card is encrypted right here in your browser with <b>AES-256</b> — the same strength banks use.</>,
+          "Locked before saving",
+          "Before your card is saved, it is locked (encrypted) on your own phone, with the same strong lock that banks use.",
         )}
         {item(
           <KeyIcon className="h-5 w-5" />,
-          "Your key stays with you",
-          "A secret key is created just for you and kept on this device so it can't be copied out. If you choose to add a passphrase, a copy is saved online locked with it — and your passphrase never leaves your device.",
+          "Only your phone has the key",
+          "A secret key that opens your cards is made just for you and kept on your phone. If you set a card password, a copy of the key is saved online, locked with that password.",
         )}
         {item(
           <EyeOff className="h-5 w-5" />,
-          "The server only sees scrambled text",
-          "What is stored online cannot be read by anyone — not the app owner, and not the cloud provider.",
+          "Nobody else can read it",
+          "Online, your card is stored as scrambled text. Nobody can read it, not even the people who run this app.",
         )}
         {item(
           <UserIcon className="h-5 w-5" />,
-          "Only your account can open them",
-          "Without signing in you get a private account automatically. With Google sign-in and a passphrase, your cards follow you to any device. Either way, security rules let only you reach your cards.",
+          "Only you can open them",
+          "Even without signing in, you get your own private space. If you sign in with Google and set a card password, you can open your cards on any phone.",
         )}
         {item(
           <Smartphone className="h-5 w-5" />,
-          "Good to know",
-          "Your cards can only be opened with a key kept on this phone. If you clear your browser data or change phones, that key is gone — so sign in with Google and set a passphrase (tap your name → Protect your cards). Then you can open your cards on any device. Nobody can reset the passphrase, so write it down.",
+          "Please note",
+          "If you clear your browser or change your phone, the key on this phone is lost, and so are your cards. To keep them safe, sign in with Google and set a card password (tap your name, then Protect your cards). Please write the password down; nobody can reset it.",
         )}
       </ul>
     </div>
@@ -127,8 +129,8 @@ export function PrivacyBadge() {
         <Lock className="h-[18px] w-[18px]" />
       </span>
       <span className="text-[13px] leading-snug">
-        <b className="block text-ink">End-to-end encrypted</b>
-        <span className="text-ink/60">Only you can read your card — not even the app owner.</span>
+        <b className="block text-ink">Your card is private</b>
+        <span className="text-ink/60">Only you can read it, not even the people who run this app.</span>
       </span>
     </div>
   );
@@ -204,9 +206,9 @@ export function PrivacyNotice({ weekStart, weekLabel }: { weekStart: string; wee
         <p className="relative mt-1 text-[13px] text-ink/55">Week of {weekLabel}</p>
 
         <ul className="mt-5 space-y-3.5 text-left">
-          {point(<ShieldCheck className="h-5 w-5" />, "Encrypted on your device", "Everything you write is locked before it is saved.")}
+          {point(<ShieldCheck className="h-5 w-5" />, "Locked on your phone", "Everything you write is locked before it is saved.")}
           {point(<EyeOff className="h-5 w-5" />, "Only you can read it", "Not even the people who run this app can see it.")}
-          {point(<Smartphone className="h-5 w-5" />, "Kept in your account", "Sign in with Google on the home screen to keep your cards safe.")}
+          {point(<Smartphone className="h-5 w-5" />, "Keep them safe", "Sign in with Google on the home page and set a card password, so you never lose your cards.")}
         </ul>
 
         <button
@@ -224,3 +226,85 @@ export function PrivacyNotice({ weekStart, weekLabel }: { weekStart: string; wee
   );
 }
 
+
+const longDay = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+
+/**
+ * Shown while Download / Send to mentor are still closed:
+ * "Available on Mon, 23 Nov, after this week ends · 3d 9h left  (i)".
+ * The (i) explains why, in plain words.
+ */
+export function UnlockNote({ weekStart, day, left, layout }: { weekStart: string; day: string; left: string; layout: "bar" | "inline" }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const at = opensAt(weekStart);
+  const when = at ? longDay.format(at) : day;
+
+  const info = (
+    <button
+      type="button"
+      aria-label="Why can't I send my card yet?"
+      aria-haspopup="dialog"
+      onClick={(e) => {
+        const el = e.currentTarget;
+        setAnchor((a) => (a ? null : el));
+      }}
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-brand hover:bg-band"
+    >
+      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-5M12 8h.01" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+
+  const step = (n: number, text: ReactNode) => (
+    <li className="flex items-start gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[12px] font-bold text-brand">{n}</span>
+      <span className="pt-0.5">{text}</span>
+    </li>
+  );
+
+  return (
+    <>
+      {layout === "bar" ? (
+        <div className="mx-auto mt-1.5 flex max-w-md items-center justify-center gap-2">
+          <Lock className="h-4 w-4 shrink-0 text-ink/40" />
+          <p className="min-w-0 text-left text-[12px] leading-tight text-ink/60">
+            <span className="block whitespace-nowrap">
+              Opens on <b className="text-ink">{day}</b>, after this week
+            </span>
+            <span className="block text-[11px] text-ink/50 tabular-nums">{left} left</span>
+          </p>
+          {info}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1 text-[12.5px] text-ink/65">
+          <Lock className="h-3.5 w-3.5 shrink-0 text-ink/45" />
+          <span>
+            Opens on <b className="text-ink">{day}</b>, after this week · <span className="tabular-nums">{left} left</span>
+          </span>
+          {info}
+        </div>
+      )}
+      <Popover anchor={anchor} open={!!anchor} onClose={() => setAnchor(null)} onDone={() => setAnchor(null)} title="Why can't I send my card yet?">
+        <div className="max-w-sm space-y-3 text-[14px] leading-relaxed text-ink/75">
+          <p>
+            Your Sadhana Card is a report of the <b className="text-ink">whole week, Monday to Sunday</b>. So that your mentor sees the full week,{" "}
+            <b className="text-ink">Download</b> and <b className="text-ink">Send to mentor</b> open only after the week is over.
+          </p>
+          <div className="rounded-2xl bg-band p-3 text-center">
+            <div className="text-[12px] text-ink/55">This card ({formatWeekRange(weekStart)}) can be sent from</div>
+            <div className="text-[17px] font-bold text-brand">{when}, 12:00 AM</div>
+            <div className="text-[12px] text-ink/55 tabular-nums">{left} left</div>
+          </div>
+          <ol className="space-y-2">
+            {step(1, "Keep filling in each day until Sunday night. Everything saves by itself.")}
+            {step(2, <>On Monday, open this card and tap <b className="text-ink">Send to mentor</b>.</>)}
+            {step(3, "Choose WhatsApp, then your mentor's chat. Your card is attached as a picture.")}
+          </ol>
+          <p className="text-[12.5px] text-ink/55">Cards for weeks that are already over can be sent any time.</p>
+        </div>
+      </Popover>
+    </>
+  );
+}

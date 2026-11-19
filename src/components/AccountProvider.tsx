@@ -87,14 +87,14 @@ function ProtectPrompt({ onAnswer }: { onAnswer: (setUp: boolean) => void }) {
           Right now your cards can only be opened on <b className="text-ink">this phone</b>. If you change phones or clear your browser, they can&apos;t be
           opened again.
         </p>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink/65">Set a passphrase once, and you can open your cards on any device by signing in.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink/65">Set a card password once, and you can open your cards on any device by signing in.</p>
       </div>
       <button
         type="button"
         onClick={() => onAnswer(true)}
         className="mt-5 h-12 w-full rounded-2xl bg-brand text-[15px] font-semibold text-white shadow-sm hover:bg-brand-dark"
       >
-        Set a passphrase
+        Set a card password
       </button>
       <button type="button" onClick={() => onAnswer(false)} className="mt-2 h-10 w-full text-sm font-medium text-ink/55">
         Not now
@@ -122,7 +122,7 @@ function NewPassphraseFields(props: { p1: string; p2: string; setP1: (v: string)
   const s = strength(p1);
   return (
     <div className="space-y-3 text-left">
-      <PassphraseInput label="New passphrase" value={p1} onChange={setP1} autoFocus autoComplete="new-password" />
+      <PassphraseInput label="New card password" value={p1} onChange={setP1} autoFocus autoComplete="new-password" />
       {p1 && (
         <div className="flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/[0.06]">
@@ -132,7 +132,7 @@ function NewPassphraseFields(props: { p1: string; p2: string; setP1: (v: string)
         </div>
       )}
       <PassphraseInput label="Type it again" value={p2} onChange={setP2} autoComplete="new-password" onEnter={onEnter} />
-      {p2 && p1 !== p2 && <p className="text-[12px] text-rose-600">The two passphrases don&apos;t match.</p>}
+      {p2 && p1 !== p2 && <p className="text-[12px] text-rose-600">The two card passwords don&apos;t match.</p>}
     </div>
   );
 }
@@ -161,17 +161,17 @@ function SetupDialog({ onLater }: { onLater: () => void }) {
           <Lock className="h-6 w-6" />
         </DialogBadge>
         <h2 id={id} className="mt-4 font-serif text-[22px] font-bold text-ink">
-          Create your card passphrase
+          Create your card password
         </h2>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
-          It keeps your cards locked so only you can read them, and opens them when you sign in on another phone or computer.
+          With this password, you can open your cards on any phone or computer after signing in. Only you will know it.
         </p>
       </div>
       <div className="mt-5">
         <NewPassphraseFields p1={p1} p2={p2} setP1={setP1} setP2={setP2} onEnter={submit} />
       </div>
       <div className="mt-4 rounded-xl bg-amber-50 p-3 text-[12.5px] leading-snug text-amber-900 ring-1 ring-amber-200">
-        <b>Write it down.</b> Nobody can reset it for you — not even the app owner. Without it, saved cards can&apos;t be opened on a new device.
+        <b>Write it down.</b> Nobody can reset it for you, not even the people who run this app. Without it, your cards can&apos;t be opened on a new phone.
       </div>
       {error && <p className="mt-3 text-center text-sm text-rose-600">{error}</p>}
       <button
@@ -180,7 +180,7 @@ function SetupDialog({ onLater }: { onLater: () => void }) {
         disabled={!valid || busy}
         className="mt-5 h-12 w-full rounded-2xl bg-brand text-[15px] font-semibold text-white shadow-sm hover:bg-brand-dark disabled:opacity-50"
       >
-        {busy ? "Securing your cards…" : "Create passphrase"}
+        {busy ? "Saving your password…" : "Create password"}
       </button>
       <button type="button" onClick={onLater} disabled={busy} className="mt-2 h-10 w-full text-sm font-medium text-ink/55 disabled:opacity-50">
         Later
@@ -234,11 +234,11 @@ function UnlockDialog({ email }: { email: string }) {
               Unlock your cards
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
-              Signed in as <b className="text-ink">{email}</b>. Enter your card passphrase to open your cards on this device.
+              Signed in as <b className="text-ink">{email}</b>. Enter your card password to open your cards on this device.
             </p>
           </div>
           <div className="mt-5">
-            <PassphraseInput label="Passphrase" value={pass} onChange={setPass} autoFocus onEnter={doUnlock} />
+            <PassphraseInput label="Card password" value={pass} onChange={setPass} autoFocus onEnter={doUnlock} />
           </div>
           {error && <p className="mt-3 text-center text-sm text-rose-600">{error}</p>}
           <button
@@ -259,7 +259,7 @@ function UnlockDialog({ email }: { email: string }) {
               }}
               className="font-medium text-brand"
             >
-              Forgot passphrase?
+              Forgot card password?
             </button>
             <button type="button" disabled={busy} onClick={doSignOut} className="font-medium text-ink/55">
               Sign out
@@ -276,8 +276,8 @@ function UnlockDialog({ email }: { email: string }) {
               Start fresh?
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
-              Without the old passphrase your saved cards can&apos;t be opened by anyone. Starting fresh <b className="text-rose-600">deletes them</b>{" "}
-              and sets a new passphrase.
+              Without your old card password, nobody can open your saved cards. Starting fresh <b className="text-rose-600">deletes them</b>{" "}
+              and sets a new card password.
             </p>
           </div>
           <div className="mt-5">
@@ -290,7 +290,7 @@ function UnlockDialog({ email }: { email: string }) {
             disabled={p1.length < MIN_LEN || p1 !== p2 || busy}
             className="mt-5 h-12 w-full rounded-2xl bg-rose-500 text-[15px] font-semibold text-white shadow-sm hover:bg-rose-600 disabled:opacity-50"
           >
-            {busy ? "Please wait…" : "Delete old cards & start fresh"}
+            {busy ? "Please wait…" : "Delete old cards and start fresh"}
           </button>
           <button
             type="button"

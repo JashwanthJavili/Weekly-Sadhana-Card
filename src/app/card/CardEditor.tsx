@@ -3,14 +3,14 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Download, Home, Lock, Share } from "@/components/icons";
+import { Check, ChevronLeft, ChevronRight, Download, Home, Share } from "@/components/icons";
 import { SadhanaCard } from "@/components/SadhanaCard";
 import { WeekReport } from "@/components/WeekReport";
-import { InfoButton, PrivacyNotice } from "@/components/ui";
+import { InfoButton, PrivacyNotice, UnlockNote } from "@/components/ui";
 import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName, shareMessage } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
 import { buildCardImage, downloadBlob, shareFile } from "@/lib/export";
-import { LockedError } from "@/lib/account";
+import { initAccount, LockedError } from "@/lib/account";
 import { useAccount } from "@/components/AccountProvider";
 import { ShareDialog } from "@/components/ShareDialog";
 import { repo } from "@/lib/storage";
@@ -18,7 +18,7 @@ import { useTyping } from "@/lib/useKeyboard";
 import { useUnlock } from "@/lib/useUnlock";
 import type { WeekCard } from "@/lib/types";
 
-type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type SaveState = "idle" | "dirty" | "saving" | "saved" | "offline" | "error";
 
 const AUTOSAVE_MS = 700;
 
@@ -90,13 +90,20 @@ export default function CardEditor() {
         setError(null);
       } catch (e) {
         if (cancelled || e instanceof LockedError) return;
-        setLoadError(e instanceof Error ? e.message : "Could not load this card.");
+        console.error(e);
+        setLoadError("Sorry, this card couldn't be opened. Please check your internet connection and try again.");
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [week, weekStart, reload, accountReady, acc.phase, acc.error, acc.version]);
+
+  useEffect(() => {
+    const onOnline = () => setSaveState((s) => (s === "offline" ? "saved" : s));
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   const persist = useCallback(async (override?: WeekCard) => {
     const current = override ?? cardRef.current;
@@ -112,7 +119,8 @@ export default function CardEditor() {
         if (hasProfile) setSavedAt(new Date().toISOString());
       } catch (e) {
         setSaveState("error");
-        setError(e instanceof Error ? e.message : "Could not save.");
+        console.error(e);
+        setError("Sorry, your changes couldn't be saved. Please check your internet connection and try again.");
       }
       return;
     }
@@ -124,11 +132,12 @@ export default function CardEditor() {
       persistedRef.current = true;
       dirtyRef.current = false;
       setSavedAt(saved.updatedAt);
-      setSaveState("saved");
+      setSaveState(navigator.onLine === false ? "offline" : "saved");
       setError(null);
     } catch (e) {
       setSaveState("error");
-      setError(e instanceof Error ? e.message : "Could not save.");
+      console.error(e);
+        setError("Sorry, your changes couldn't be saved. Please check your internet connection and try again.");
     }
   }, []);
 
@@ -179,7 +188,7 @@ export default function CardEditor() {
       downloadBlob(file, file.name);
     } catch (e) {
       console.error(e);
-      setError("Download failed. Please try again.");
+      setError("Sorry, the download didn't work. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -202,7 +211,7 @@ export default function CardEditor() {
       if (r === "needs-tap" || r === "unsupported") setShare(file);
     } catch (e) {
       console.error(e);
-      setError("Could not prepare your card. Please try again.");
+      setError("Sorry, your card couldn't be prepared. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -212,7 +221,7 @@ export default function CardEditor() {
   if (!weekStart) {
     return (
       <main className="mx-auto max-w-md p-8 text-center">
-        <p className="mb-4">That date doesn&apos;t look right.</p>
+        <p className="mb-4">Sorry, that date isn&apos;t valid. Please choose a week from your cards.</p>
         <a href="/" className="font-semibold text-brand underline">
           Back to my cards
         </a>
@@ -246,7 +255,7 @@ export default function CardEditor() {
   );
 
   return (
-    <main className="flex min-h-dvh flex-col">
+    <main className="page-in flex min-h-dvh flex-col">
       {/* ───────── Top bar ───────── */}
       <div className="sticky top-0 z-20 border-b border-black/[0.06] bg-white">
         <div className="mx-auto flex h-14 max-w-[900px] items-center gap-0.5 px-1.5 sm:gap-1 sm:px-2 lg:px-4">
@@ -268,11 +277,7 @@ export default function CardEditor() {
           <SaveIndicator state={saveState} savedAt={savedAt} />
 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            {!unlock.open && unlock.left && (
-              <span className="flex items-center gap-1 text-[12px] text-ink/60" title={`Download and Send open on ${unlock.day}`}>
-                <Lock className="h-3.5 w-3.5" /> Opens {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
-              </span>
-            )}
+            {!unlock.open && unlock.left && weekStart && <UnlockNote weekStart={weekStart} day={unlock.day} left={unlock.left} layout="inline" />}
             <button type="button" onClick={() => void prepareShare()} disabled={!card || !!busy || !unlock.open} className="btn-outline">
               <Share className="h-4 w-4" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
             </button>
@@ -302,7 +307,13 @@ export default function CardEditor() {
           {loadError ? (
             <div className="w-full rounded-2xl border border-rose-200 bg-white p-6 text-center">
               <p className="mb-4 text-sm text-rose-700">{loadError}</p>
-              <button className="btn-solid" onClick={() => setReload((n) => n + 1)}>
+              <button
+                className="btn-solid"
+                onClick={() => {
+                  if (acc.phase === "error") void initAccount(); // reconnect, then the card loads by itself
+                  else setReload((n) => n + 1);
+                }}
+              >
                 Try again
               </button>
             </div>
@@ -321,32 +332,25 @@ export default function CardEditor() {
       {/* ───────── Phone bottom bar ───────── */}
       <div
         aria-hidden={typing || undefined}
-        className={`fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-200 ease-out lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 px-3 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] transition-transform duration-200 ease-out lg:hidden ${
           typing ? "pointer-events-none translate-y-full" : ""
         }`}
       >
         <div className="mx-auto flex max-w-md items-center gap-2">
           <button type="button" onClick={() => void download()}
             disabled={!card || !!busy || !unlock.open}
-            className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-brand disabled:opacity-50"
+            className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4vw,15px)] font-semibold whitespace-nowrap text-brand active:bg-band disabled:border-line disabled:text-ink/35"
           >
             <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
           </button>
           <button type="button" onClick={() => void prepareShare()}
             disabled={!card || !!busy || !unlock.open}
-            className="flex h-12 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
+            className="flex h-11 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4vw,15px)] font-semibold whitespace-nowrap text-white shadow-sm active:bg-brand-dark disabled:bg-brand/35"
           >
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
           </button>
         </div>
-        {!unlock.open && unlock.left && (
-          <p className="mx-auto mt-1.5 flex max-w-md items-center justify-center gap-1 text-[12px] text-ink/60" aria-live="off">
-            <Lock className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              Download &amp; Send open {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
-            </span>
-          </p>
-        )}
+        {!unlock.open && unlock.left && weekStart && <UnlockNote weekStart={weekStart} day={unlock.day} left={unlock.left} layout="bar" />}
       </div>
 
       {card && <PrivacyNotice weekStart={card.weekStart} weekLabel={formatWeekRange(card.weekStart)} />}
@@ -368,9 +372,11 @@ function SaveIndicator({ state, savedAt }: { state: SaveState; savedAt: string |
     state === "saving" || state === "dirty"
       ? "Saving…"
       : state === "error"
-        ? "Not saved — check your connection"
-        : state === "saved"
-          ? `Saved${time ? ` at ${time}` : ""}`
+        ? "Not saved yet. Please check your internet connection."
+        : state === "offline"
+          ? "Saved on this phone. It will upload when you're back online."
+          : state === "saved"
+            ? `Saved${time ? ` at ${time}` : ""}`
           : "Saves automatically";
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center lg:w-auto lg:gap-1.5 lg:px-2" title={label} aria-live="polite" aria-label={label}>
@@ -378,6 +384,10 @@ function SaveIndicator({ state, savedAt }: { state: SaveState; savedAt: string |
         <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand" />
       ) : state === "error" ? (
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[12px] font-bold text-white">!</span>
+      ) : state === "offline" ? (
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white">
+          <Check className="h-3.5 w-3.5" />
+        </span>
       ) : state === "saved" ? (
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
           <Check className="h-3.5 w-3.5" />

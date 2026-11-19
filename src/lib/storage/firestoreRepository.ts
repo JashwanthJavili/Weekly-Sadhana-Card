@@ -4,6 +4,18 @@ import type { Profile, WeekCard } from "../types";
 import type { CardRepository } from "./repository";
 import { decodeCard, encodeCard, encodeProfile, readAllCards, readProfile, userRef, weekRef } from "./firestoreCodec";
 
+/**
+ * Wait for a write to reach the server, except when offline: Firestore has already kept it on
+ * this phone and uploads it automatically later, so the app shouldn't sit on "Saving…".
+ */
+async function committed(write: Promise<void>): Promise<void> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    write.catch((e) => console.error("Upload failed after coming back online", e));
+    return;
+  }
+  await write;
+}
+
 /** Encrypted Firestore storage. The signed-in user and their key come from lib/account. */
 export class FirestoreRepository implements CardRepository {
   async listCards(): Promise<WeekCard[]> {
@@ -30,13 +42,13 @@ export class FirestoreRepository implements CardRepository {
   async saveCard(card: WeekCard): Promise<WeekCard> {
     const { uid, key } = await requireSession();
     const saved: WeekCard = { ...card, updatedAt: new Date().toISOString() };
-    await setDoc(weekRef(uid, card.weekStart), await encodeCard(uid, key, saved));
+    await committed(setDoc(weekRef(uid, card.weekStart), await encodeCard(uid, key, saved)));
     return saved;
   }
 
   async deleteCard(weekStart: string): Promise<void> {
     const { uid } = await requireSession();
-    await deleteDoc(weekRef(uid, weekStart));
+    await committed(deleteDoc(weekRef(uid, weekStart)));
   }
 
   async getProfile(): Promise<Profile | null> {
@@ -46,7 +58,7 @@ export class FirestoreRepository implements CardRepository {
 
   async saveProfile(profile: Profile): Promise<void> {
     const { uid, key } = await requireSession();
-    await setDoc(
+    await committed(setDoc(
       userRef(uid),
       {
         uid,
@@ -58,6 +70,6 @@ export class FirestoreRepository implements CardRepository {
         ct: deleteField(),
       },
       { merge: true },
-    );
+    ));
   }
 }

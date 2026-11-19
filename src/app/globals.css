@@ -177,6 +177,19 @@ textarea {
 .modal-backdrop {
   animation: fade-in 0.2s ease-out;
 }
+/* Pages fade in gently when opened */
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Opacity only: a transform here would break the fixed bottom bar while animating. */
+.page-in {
+  animation: page-in 0.25s ease-out;
+}
 .modal-panel {
   animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -186,6 +199,7 @@ textarea {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .page-in,
   .modal-panel,
   .modal-backdrop,
   .sheet-panel,

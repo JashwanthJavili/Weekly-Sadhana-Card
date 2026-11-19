@@ -18,7 +18,7 @@ export async function buildCardImage(node: HTMLElement, baseName: string): Promi
   // First call warms up font/image embedding (some browsers miss them on the first pass).
   await toBlob(node, opts).catch(() => undefined);
   const blob = await toBlob(node, opts);
-  if (!blob) throw new Error("Could not create the image.");
+  if (!blob) throw new Error("Sorry, the image couldn't be created.");
   return new File([blob], `${baseName}.png`, { type: "image/png" });
 }
 

@@ -67,7 +67,7 @@ export function AccountRow() {
     else setError(r.error);
   };
 
-  if (!user) return <div className="h-[58px] shrink-0 animate-pulse rounded-2xl bg-white/70" />;
+  if (!user) return <div className="h-[54px] shrink-0 animate-pulse rounded-2xl bg-white/70" />;
 
   if (!google) {
     return (
@@ -75,14 +75,14 @@ export function AccountRow() {
         <button
           type="button"
           onClick={() => (busy ? cancelGoogleSignIn() : void doGoogle())}
-          className="flex w-full items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-sm ring-1 ring-black/5 transition-colors hover:bg-band disabled:opacity-60"
+          className="flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-2 text-left shadow-sm ring-1 ring-black/5 transition-colors hover:bg-band active:bg-band disabled:opacity-60"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-black/10">
             <GoogleG className="h-[18px] w-[18px]" />
           </span>
           <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-[14px] font-semibold text-ink">{busy ? "Signing in… tap to cancel" : "Continue with Google"}</span>
-            <span className="mt-0.5 block text-[12.5px] leading-snug text-ink/65"><b className="font-semibold text-brand">Optional</b> · keep your cards in your Google account</span>
+            <span className="mt-0.5 block truncate text-[12px] leading-snug text-ink/65"><b className="font-semibold text-brand">Optional</b> · save to your account</span>
           </span>
           <ChevronRight className="h-4 w-4 text-ink/30" />
         </button>
@@ -103,7 +103,7 @@ export function AccountRow() {
           setConfirmOut(false);
           setAnchor((a) => (a ? null : el));
         }}
-        className="flex w-full shrink-0 items-center gap-3 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-sm ring-1 ring-black/5 transition-colors hover:bg-band"
+        className="flex w-full shrink-0 items-center gap-3 rounded-2xl bg-white px-3 py-2 text-left shadow-sm ring-1 ring-black/5 transition-colors hover:bg-band active:bg-band"
       >
         <Avatar name={name} photoURL={user.photoURL} />
         <span className="min-w-0 flex-1 leading-tight">
@@ -126,11 +126,11 @@ export function AccountRow() {
           </div>
 
           <div className="mt-4 rounded-2xl bg-band p-3 text-[13px] leading-snug text-ink/70">
-            Your cards are saved to this Google account and stay end-to-end encrypted.
+            Your cards are saved in this Google account, and only you can read them.
             {acc.phase === "ready" ? (
-              <span className="mt-1 block font-medium text-emerald-700">Protected with your passphrase: they open on any device.</span>
+              <span className="mt-1 block font-medium text-emerald-700">Protected with your card password. You can open them on any device.</span>
             ) : (
-              <span className="mt-1 block font-medium text-amber-700">Not protected yet: they open only on this phone.</span>
+              <span className="mt-1 block font-medium text-amber-700">Not protected yet. Right now they open only on this phone.</span>
             )}
           </div>
 
@@ -146,7 +146,7 @@ export function AccountRow() {
               <KeyIcon className="h-4 w-4 shrink-0 text-brand" />
               <span className="flex-1">
                 <b className="block text-ink">Protect your cards</b>
-                <span className="text-ink/55">Set a passphrase to open them on any device</span>
+                <span className="text-ink/55">Set a card password to open them on any device</span>
               </span>
               <ChevronRight className="h-4 w-4 text-ink/30" />
             </button>
@@ -154,7 +154,7 @@ export function AccountRow() {
 
           {confirmOut ? (
             <div className="mt-3 rounded-2xl bg-rose-50 p-3 ring-1 ring-rose-200">
-              <p className="text-[13px] leading-snug text-rose-900">Sign out of this device? Your cards stay in your account.</p>
+              <p className="text-[13px] leading-snug text-rose-900">Sign out on this device? Your cards will stay safe in your account.</p>
               <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <button type="button" disabled={busy} onClick={() => setConfirmOut(false)} className="h-10 rounded-xl border border-line bg-white text-sm font-semibold text-ink">
                   Cancel

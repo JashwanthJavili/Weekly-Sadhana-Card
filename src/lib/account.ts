@@ -48,7 +48,7 @@ export interface AccountSnapshot {
 
 export class LockedError extends Error {
   constructor() {
-    super("Your cards are locked. Enter your passphrase to open them.");
+    super("Your cards are locked. Please enter your card password to open them.");
     this.name = "LockedError";
   }
 }
@@ -152,7 +152,7 @@ function run(op: () => Promise<void>): Promise<Result> {
   current = p;
   return p.then(
     () => ({ ok: true as const }),
-    (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : "Something went wrong." }),
+    (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : "Sorry, something went wrong. Please try again." }),
   );
 }
 
@@ -226,9 +226,10 @@ async function rekeyWithPassphrase(passphrase: string) {
 export function initAccount() {
   if (started) return current;
   started = true;
+  if (snap.phase === "error") set({ phase: "loading", error: null }); // retrying after a failed start
   current = establish().catch((e: unknown) => {
     started = false;
-    set({ phase: "error", error: e instanceof Error ? e.message : "Could not connect." });
+    set({ phase: "error", error: e instanceof Error ? e.message : "Sorry, we couldn't connect. Please check your internet connection and try again." });
   });
   return current;
 }
@@ -238,7 +239,7 @@ export async function requireSession(): Promise<{ uid: string; key: CryptoKey }>
   await initAccount();
   await current.catch(() => undefined);
   if (snap.phase === "locked") throw new LockedError();
-  if (!key || !snap.user) throw new Error(snap.error ?? "Could not connect. Please try again.");
+  if (!key || !snap.user) throw new Error(snap.error ?? "Sorry, we couldn't connect. Please check your internet connection and try again.");
   return { uid: snap.user.uid, key };
 }
 
@@ -330,7 +331,7 @@ export function unlock(passphrase: string): Promise<Result> {
     try {
       k = await unwrapKey(wrap, passphrase);
     } catch {
-      throw new Error("That passphrase is not right. Please try again.");
+      throw new Error("That card password doesn't match. Please check it and try again.");
     }
     await storeKey(snap.user.uid, k);
     key = k;

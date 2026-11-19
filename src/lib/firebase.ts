@@ -70,16 +70,16 @@ export function authErrorMessage(e: unknown): string {
   switch (code) {
     case "auth/operation-not-allowed":
     case "auth/admin-restricted-operation":
-      return "This sign-in method is not switched on yet (Firebase Console → Authentication → Sign-in method).";
+      return "Sorry, Google sign-in isn't available right now. Please try again later.";
     case "auth/unauthorized-domain":
-      return "This website isn't allowed to use Google sign-in yet (Firebase Console → Authentication → Settings → Authorized domains).";
+      return "Sorry, Google sign-in isn't available right now. Please try again later.";
     case "auth/popup-blocked":
-      return "Your browser blocked the sign-in window. Please allow pop-ups and try again.";
+      return "Your browser blocked the Google sign-in window. Please allow pop-ups for this site and try again.";
     case "auth/network-request-failed":
-      return "No internet connection. Please check your connection and try again.";
+      return "You seem to be offline. Please check your internet connection and try again.";
     case "auth/too-many-requests":
-      return "Too many attempts. Please wait a minute and try again.";
+      return "There have been too many attempts. Please wait a minute and try again.";
     default:
-      return "Something went wrong. Please try again.";
+      return "Sorry, something went wrong. Please try again.";
   }
 }

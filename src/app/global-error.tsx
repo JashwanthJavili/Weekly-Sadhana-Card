@@ -23,7 +23,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
       <body style={{ fontFamily: "system-ui, sans-serif", background: "#eef3f1", margin: 0 }}>
         <main style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ background: "#fff", borderRadius: 24, padding: 24, maxWidth: 360, textAlign: "center" }}>
-            <h1 style={{ fontSize: 22, margin: 0, color: "#434343" }}>Something went wrong</h1>
+            <h1 style={{ fontSize: 22, margin: 0, color: "#434343" }}>Sorry, something went wrong</h1>
             <p style={{ color: "#6b6b6b", fontSize: 14 }}>Your cards are safe. Please reload the page.</p>
             <button
               type="button"

@@ -122,7 +122,7 @@ function PaperCard(props: { card: WeekCard; locked: boolean; actions: CardAction
         {(
           [
             ["attended", "Attended"],
-            ["not_attended", "Not Attended"],
+            ["not_attended", "Not attended"],
           ] as const
         ).map(([value, text]) => {
           const checked = card.yuvaSetu === value;
@@ -299,7 +299,7 @@ function CellValue({ row, entry }: { row: RowDef; entry: DayEntry }) {
       <div className="flex h-full flex-col items-center justify-center leading-tight">
         {v && (
           <span className="text-[15px] font-bold">
-            {v} <span className="text-[10px] font-normal text-ink/60">rds</span>
+            {v} <span className="text-[10px] font-normal text-ink/60">rounds</span>
           </span>
         )}
         {t && <span className="text-[11px] text-ink/75">{fieldText(row, row.field2!, t)}</span>}

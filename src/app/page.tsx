@@ -67,7 +67,8 @@ export default function HomePage() {
       })
       .catch((e: unknown) => {
         if (seq !== loadSeq.current || e instanceof LockedError) return; // the unlock dialog is showing
-        setLoadError(e instanceof Error ? e.message : "Could not load your cards.");
+        console.error(e);
+        setLoadError("Sorry, your cards couldn't be loaded. Please check your internet connection and try again.");
       });
   }, []);
 
@@ -135,7 +136,7 @@ export default function HomePage() {
         }
       } catch (e) {
         console.error(e);
-        if (!cancelled) setExportError("Could not prepare your card. Please try again.");
+        if (!cancelled) setExportError("Sorry, your card couldn't be prepared. Please try again.");
       } finally {
         if (!cancelled) setExporting(null);
       }
@@ -149,7 +150,7 @@ export default function HomePage() {
   const menuOpensAt = menu ? opensAt(menu.card.weekStart) : null;
   const menuLock =
     menuOpensAt && Date.now() < menuOpensAt.getTime()
-      ? `Opens ${menuOpensAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}, after the week ends`
+      ? `You can send this from ${menuOpensAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}, after the week ends`
       : null;
 
   const confirmDelete = async () => {
@@ -161,7 +162,7 @@ export default function HomePage() {
       setCards((prev) => prev?.filter((x) => x.weekStart !== toDelete.weekStart) ?? null);
       setToDelete(null);
     } catch {
-      setDeleteError("Could not delete. Please check your connection and try again.");
+      setDeleteError("Sorry, the card couldn't be deleted. Please check your internet connection and try again.");
     } finally {
       setDeleting(false);
     }
@@ -169,33 +170,33 @@ export default function HomePage() {
 
   return (
     // Exactly one screen tall: only the list of cards scrolls, the footer is always visible.
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="relative shrink-0 bg-brand px-4 py-3.5 text-center text-white">
+    <div className="page-in flex h-dvh flex-col overflow-hidden">
+      <header className="relative shrink-0 bg-brand px-4 py-3 text-center text-white">
         <InfoButton light topic="security" className="absolute top-1/2 right-2 -translate-y-1/2" />
-        <h1 className="font-serif text-[26px] leading-none font-bold sm:text-[32px]">Sadhana Card</h1>
+        <h1 className="font-serif text-[24px] leading-none font-bold sm:text-[30px]">Sadhana Card</h1>
         <img src="/icons/flourish.png" alt="" className="mx-auto mt-1.5 h-[8px] w-[150px]" />
       </header>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-3 px-4 pt-4 pb-3">
+      <main className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-2.5 px-3.5 pt-3.5 pb-3 min-[380px]:px-4">
         {/* Account (optional sign-in) */}
         <AccountRow />
 
         {/* Streak */}
-        {streak && <StreakCard info={streak} />}
+        {streak ? <StreakCard info={streak} /> : !loadError && <div className="h-[62px] shrink-0 animate-pulse rounded-2xl bg-white/70" />}
 
         {/* Choose a week */}
-        <section className="shrink-0 rounded-2xl bg-white p-3 shadow-md ring-1 ring-black/5 sm:p-4">
+        <section className="shrink-0 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-black/5 min-[380px]:p-3">
           <div className="flex items-center gap-1 rounded-xl bg-paper ring-1 ring-line">
             <button
               type="button"
               onClick={() => pickedWeek && setPicked(shiftWeek(pickedWeek, -1))}
               aria-label="Previous week"
-              className="flex h-14 w-12 shrink-0 items-center justify-center rounded-l-xl text-ink/60 hover:bg-band active:bg-band"
+              className="flex h-[52px] w-11 shrink-0 items-center justify-center rounded-l-xl text-ink/60 hover:bg-band active:bg-band"
             >
               <ChevronLeft />
             </button>
             <label className="relative flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center py-1.5 text-center" title="Pick any date">
-              <span className="truncate text-[16px] font-semibold text-ink">{pickedWeek ? formatWeekRange(pickedWeek) : "…"}</span>
+              <span className="truncate text-[15px] font-semibold text-ink">{pickedWeek ? formatWeekRange(pickedWeek) : "…"}</span>
               <span className={`text-[12px] font-medium ${existing ? "text-brand" : "text-ink/50"}`}>
                 {pickedWeek ? relativeWeek(pickedWeek) : ""}
                 {existing ? " · saved" : ""}
@@ -212,7 +213,7 @@ export default function HomePage() {
               type="button"
               onClick={() => pickedWeek && setPicked(shiftWeek(pickedWeek, 1))}
               aria-label="Next week"
-              className="flex h-14 w-12 shrink-0 items-center justify-center rounded-r-xl text-ink/60 hover:bg-band active:bg-band"
+              className="flex h-[52px] w-11 shrink-0 items-center justify-center rounded-r-xl text-ink/60 hover:bg-band active:bg-band"
             >
               <ChevronRight />
             </button>
@@ -221,7 +222,7 @@ export default function HomePage() {
             type="button"
             onClick={() => pickedWeek && window.location.assign(cardHref(pickedWeek))}
             disabled={!pickedWeek}
-            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark disabled:opacity-50"
+            className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark active:bg-brand-dark disabled:opacity-50"
           >
             {existing ? "Open card" : "Start card"}
             <ChevronRight className="h-4 w-4" />
@@ -230,8 +231,8 @@ export default function HomePage() {
 
         {/* Saved cards — the only part that scrolls */}
         <section className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 flex items-baseline justify-between px-1">
-            <h2 className="font-serif text-lg font-bold text-ink">My cards</h2>
+          <div className="mb-1.5 flex items-baseline justify-between px-1 pt-0.5">
+            <h2 className="font-serif text-[17px] font-bold text-ink">My cards</h2>
             {cards && cards.length > 0 && <span className="text-xs text-ink/50">{cards.length} saved</span>}
           </div>
 
@@ -250,8 +251,8 @@ export default function HomePage() {
               </div>
             ) : cards === null ? (
               <div className="space-y-2">
-                <div className="h-[68px] animate-pulse rounded-2xl bg-white/70" />
-                <div className="h-[68px] animate-pulse rounded-2xl bg-white/50" />
+                <div className="h-[60px] animate-pulse rounded-2xl bg-white/70" />
+                <div className="h-[60px] animate-pulse rounded-2xl bg-white/50" />
               </div>
             ) : cards.length === 0 ? (
               <div className="flex h-full min-h-[110px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-white/50 p-6 text-center text-sm text-ink/60">
@@ -265,22 +266,22 @@ export default function HomePage() {
                   const done = filled === total;
                   const pct = Math.round((filled / total) * 100);
                   return (
-                    <li key={c.weekStart} className="flex items-center rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-                      <a href={cardHref(c.weekStart)} className="flex min-w-0 flex-1 items-center gap-3 rounded-l-2xl p-3.5 active:bg-band">
+                    <li key={c.weekStart} className="flex items-center rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-shadow">
+                      <a href={cardHref(c.weekStart)} className="flex min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-3 py-2.5 active:bg-band">
                         <span
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold ${
                             done ? "bg-emerald-100 text-emerald-700" : "bg-brand/10 text-brand"
                           }`}
                         >
                           {done ? "Done" : `${pct}%`}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-semibold text-ink">{formatWeekRange(c.weekStart)}</span>
+                          <span className="block truncate text-[14.5px] font-semibold text-ink max-[359px]:text-[13.5px]">{formatWeekRange(c.weekStart)}</span>
                           <span className="block text-xs text-ink/55">
                             {done ? "All filled" : `${filled}/${total} filled`}
                           </span>
                         </span>
-                        <ChevronRight className="h-5 w-5 text-ink/25" />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-ink/25 max-[359px]:hidden" />
                       </a>
                       <button
                         type="button"
@@ -343,7 +344,7 @@ export default function HomePage() {
                 danger
                 icon={<Trash className="h-[18px] w-[18px]" />}
                 title="Delete"
-                sub="Remove this card for good"
+                sub="Permanently remove this card"
                 onClick={() => {
                   const c = menu.card;
                   setMenu(null);
@@ -369,7 +370,7 @@ export default function HomePage() {
         title="Delete this card?"
         message={
           <>
-            The card for <b className="text-ink">{toDelete ? formatWeekRange(toDelete.weekStart) : ""}</b> will be removed for good.
+            The card for <b className="text-ink">{toDelete ? formatWeekRange(toDelete.weekStart) : ""}</b> will be permanently deleted. This can&apos;t be undone.
             {deleteError && <span className="mt-2 block text-rose-600">{deleteError}</span>}
           </>
         }
