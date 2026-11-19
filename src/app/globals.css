@@ -203,33 +203,10 @@ html {
   text-size-adjust: 100%;
 }
 
-/* Off-screen copy of the card used for PNG/PDF export and printing */
+/* Off-screen copy of the weekly report, used to make the shareable image */
 .export-host {
   position: fixed;
   left: -10000px;
   top: 0;
   pointer-events: none;
-}
-
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
-  body {
-    background: #fff;
-  }
-  .screen-only {
-    display: none !important;
-  }
-  .export-host {
-    position: static;
-    left: 0;
-  }
-  .export-host .sadhana-card {
-    zoom: 0.92;
-    box-shadow: none;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
 }

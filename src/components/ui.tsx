@@ -107,12 +107,12 @@ function SecurityContent() {
         {item(
           <UserIcon className="h-5 w-5" />,
           "Only your account can open them",
-          "Without signing in you get a private account automatically. With Google sign-in, your cards follow you to any device. Either way, security rules let only you reach your cards.",
+          "Without signing in you get a private account automatically. With Google sign-in and a passphrase, your cards follow you to any device. Either way, security rules let only you reach your cards.",
         )}
         {item(
           <Smartphone className="h-5 w-5" />,
           "Good to know",
-          "Not signed in? Your cards live only in this browser — sign in with Google to keep them in your account. To open them on another device, add a passphrase from your account (optional) — nobody can reset it, so remember it.",
+          "Your cards can only be opened with a key kept on this phone. If you clear your browser data or change phones, that key is gone — so sign in with Google and set a passphrase (tap your name → Protect your cards). Then you can open your cards on any device. Nobody can reset the passphrase, so write it down.",
         )}
       </ul>
     </div>

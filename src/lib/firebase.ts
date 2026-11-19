@@ -39,7 +39,7 @@ export function getFirebase() {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
     if (RECAPTCHA_SITE_KEY) {
-      if (location.hostname === "localhost") {
+      if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
         // Prints a debug token in the console; register it in Firebase Console → App Check.
         (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
       }

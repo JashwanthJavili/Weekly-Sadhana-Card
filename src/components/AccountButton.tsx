@@ -127,6 +127,11 @@ export function AccountRow() {
 
           <div className="mt-4 rounded-2xl bg-band p-3 text-[13px] leading-snug text-ink/70">
             Your cards are saved to this Google account and stay end-to-end encrypted.
+            {acc.phase === "ready" ? (
+              <span className="mt-1 block font-medium text-emerald-700">Protected with your passphrase: they open on any device.</span>
+            ) : (
+              <span className="mt-1 block font-medium text-amber-700">Not protected yet: they open only on this phone.</span>
+            )}
           </div>
 
           {acc.phase === "needs-setup" && (
@@ -140,8 +145,8 @@ export function AccountRow() {
             >
               <KeyIcon className="h-4 w-4 shrink-0 text-brand" />
               <span className="flex-1">
-                <b className="block text-ink">Open on other devices</b>
-                <span className="text-ink/55">Optional: create a passphrase</span>
+                <b className="block text-ink">Protect your cards</b>
+                <span className="text-ink/55">Set a passphrase to open them on any device</span>
               </span>
               <ChevronRight className="h-4 w-4 text-ink/30" />
             </button>

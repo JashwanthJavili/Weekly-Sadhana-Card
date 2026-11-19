@@ -248,7 +248,7 @@ export default function CardEditor() {
   return (
     <main className="flex min-h-dvh flex-col">
       {/* ───────── Top bar ───────── */}
-      <div className="screen-only sticky top-0 z-20 border-b border-black/[0.06] bg-white">
+      <div className="sticky top-0 z-20 border-b border-black/[0.06] bg-white">
         <div className="mx-auto flex h-14 max-w-[900px] items-center gap-0.5 px-1.5 sm:gap-1 sm:px-2 lg:px-4">
           <a
             href="/"
@@ -291,13 +291,13 @@ export default function CardEditor() {
 
       {/* ───────── Messages ───────── */}
       {error && (
-        <div className="screen-only mx-auto mt-3 max-w-[860px] px-3 lg:px-0">
+        <div className="mx-auto mt-3 max-w-[860px] px-3 lg:px-0">
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>
         </div>
       )}
 
       {/* ───────── Card ───────── */}
-      <div className="screen-only mt-3 flex-1 px-3 pb-36 lg:mt-5 lg:px-4 lg:pb-10">
+      <div className="mt-3 flex-1 px-3 pb-36 lg:mt-5 lg:px-4 lg:pb-10">
         <div className="mx-auto max-w-[860px]">
           {loadError ? (
             <div className="w-full rounded-2xl border border-rose-200 bg-white p-6 text-center">
@@ -307,7 +307,7 @@ export default function CardEditor() {
               </button>
             </div>
           ) : card ? (
-            <SadhanaCard card={card} mode="edit" onChange={onChange} onPickWeek={goToWeek} today={today} />
+            <SadhanaCard card={card} onChange={onChange} onPickWeek={goToWeek} today={today} />
           ) : (
             <div className="space-y-4">
               <div className="h-32 animate-pulse rounded-3xl bg-white/70" />
@@ -321,7 +321,7 @@ export default function CardEditor() {
       {/* ───────── Phone bottom bar ───────── */}
       <div
         aria-hidden={typing || undefined}
-        className={`screen-only fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-200 ease-out lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-transform duration-200 ease-out lg:hidden ${
           typing ? "pointer-events-none translate-y-full" : ""
         }`}
       >

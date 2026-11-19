@@ -1,7 +1,7 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- plain <img> keeps PNG/PDF export reliable */
+/* eslint-disable @next/next/no-img-element -- small static icons */
 
-import { forwardRef, useRef } from "react";
+import { useRef } from "react";
 import { AutoTextarea, fieldText, specsFor, YesNoToggle } from "@/components/cardFields";
 import { MobileEditor } from "@/components/MobileEditor";
 import { FieldPicker } from "@/components/pickers";
@@ -9,13 +9,10 @@ import { DAY_LABELS, REFLECTIONS, ROWS, type RowDef } from "@/lib/card";
 import { formatShort, toISODate, weekDates } from "@/lib/dates";
 import { DAY_KEYS, type DayEntry, type DayKey, type Profile, type Reflections, type WeekCard, type YesNo, type YuvaSetu } from "@/lib/types";
 
-type Mode = "edit" | "export";
 type Updater = (c: WeekCard) => WeekCard;
 
 interface Props {
   card: WeekCard;
-  /** "edit" = interactive, "export" = static copy used for PNG/PDF/print. */
-  mode: Mode;
   readOnly?: boolean;
   onChange?: (updater: Updater) => void;
   onPickWeek?: (isoDate: string) => void;
@@ -29,9 +26,10 @@ export interface CardActions {
   setYuva: (value: YuvaSetu) => void;
 }
 
-export const SadhanaCard = forwardRef<HTMLDivElement, Props>(function SadhanaCard(props, ref) {
-  const { card, mode, readOnly = false, onChange, onPickWeek, today } = props;
-  const locked = mode === "export" || readOnly;
+/** The card editor: a phone layout below 1024px, the printed-card layout on desktop. */
+export function SadhanaCard(props: Props) {
+  const { card, readOnly = false, onChange, onPickWeek, today } = props;
+  const locked = readOnly;
 
   const update = (fn: Updater) => {
     if (!locked) onChange?.(fn);
@@ -43,8 +41,6 @@ export const SadhanaCard = forwardRef<HTMLDivElement, Props>(function SadhanaCar
     setYuva: (value) => update((c) => ({ ...c, yuvaSetu: value })),
   };
 
-  if (mode === "export") return <PaperCard ref={ref} card={card} mode="export" locked actions={actions} />;
-
   return (
     <>
       {/* Phones & tablets */}
@@ -53,44 +49,38 @@ export const SadhanaCard = forwardRef<HTMLDivElement, Props>(function SadhanaCar
       </div>
       {/* Desktop: the printed card */}
       <div className="hidden lg:block">
-        <PaperCard card={card} mode="edit" locked={locked} actions={actions} today={today} onPickWeek={onPickWeek} />
+        <PaperCard card={card} locked={locked} actions={actions} today={today} onPickWeek={onPickWeek} />
       </div>
     </>
   );
-});
+}
 
 /* ───────────────────────── the printed-card layout ───────────────────────── */
 
-const PaperCard = forwardRef<
-  HTMLDivElement,
-  { card: WeekCard; mode: Mode; locked: boolean; actions: CardActions; today?: string; onPickWeek?: (iso: string) => void }
->(function PaperCard({ card, mode, locked, actions, today, onPickWeek }, ref) {
-  const isEdit = mode === "edit";
+function PaperCard(props: { card: WeekCard; locked: boolean; actions: CardActions; today?: string; onPickWeek?: (iso: string) => void }) {
+  const { card, locked, actions, today, onPickWeek } = props;
   const dates = weekDates(card.weekStart);
 
   return (
-    <div
-      ref={ref}
-      className={`sadhana-card bg-paper text-ink ${isEdit ? "mx-auto w-full max-w-[860px] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5" : "w-[860px]"}`}
-    >
+    <div className="mx-auto w-full max-w-[860px] overflow-hidden rounded-xl bg-paper text-ink shadow-sm ring-1 ring-black/5">
       {/* Header */}
       <header className="bg-brand px-6 pt-5 pb-5 text-white">
         <h1 className="text-center font-serif text-[64px] leading-none font-bold tracking-tight">Sadhana Card</h1>
         <img src="/icons/flourish.png" alt="" className="mx-auto mt-2 h-[20px] w-[376px]" />
         <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-x-8 gap-y-2.5 font-sans text-[12.5px]">
-          <HeaderField label="Name" value={card.profile.name} className="flex-1" text={mode === "export"} locked={locked} onChange={(v) => actions.setProfile("name", v)} />
-          <HeaderField label="Age" value={card.profile.age} inputClass="w-12" text={mode === "export"} locked={locked} inputMode="numeric" maxLength={3} onChange={(v) => actions.setProfile("age", v)} />
-          <HeaderField label="Mentor/Siksha Guru" value={card.profile.mentor} className="flex-1" text={mode === "export"} locked={locked} onChange={(v) => actions.setProfile("mentor", v)} />
-          <HeaderField label="Phone Number" value={card.profile.phone} inputClass="w-32" text={mode === "export"} locked={locked} inputMode="tel" maxLength={16} onChange={(v) => actions.setProfile("phone", v)} />
+          <HeaderField label="Name" value={card.profile.name} className="flex-1" locked={locked} onChange={(v) => actions.setProfile("name", v)} />
+          <HeaderField label="Age" value={card.profile.age} inputClass="w-12" locked={locked} inputMode="numeric" maxLength={3} onChange={(v) => actions.setProfile("age", v)} />
+          <HeaderField label="Mentor/Siksha Guru" value={card.profile.mentor} className="flex-1" locked={locked} onChange={(v) => actions.setProfile("mentor", v)} />
+          <HeaderField label="Phone Number" value={card.profile.phone} inputClass="w-32" locked={locked} inputMode="tel" maxLength={16} onChange={(v) => actions.setProfile("phone", v)} />
         </div>
       </header>
 
       {/* Weekly table */}
       <section className="px-4 pt-3 pb-2">
         <div className="card-grid items-end pb-2">
-          <WeekRange weekStart={card.weekStart} dates={dates} onPickWeek={isEdit ? onPickWeek : undefined} />
+          <WeekRange weekStart={card.weekStart} dates={dates} onPickWeek={onPickWeek} />
           {DAY_KEYS.map((day, i) => {
-            const isToday = isEdit && today === toISODate(dates[i]);
+            const isToday = today === toISODate(dates[i]);
             return (
               <div key={day} className="text-center">
                 <div className={`mx-auto inline-block rounded-full px-2.5 font-serif text-[16px] font-bold ${isToday ? "bg-brand text-white" : "text-brand"}`}>
@@ -104,7 +94,7 @@ const PaperCard = forwardRef<
 
         <div className="flex flex-col gap-1">
           {ROWS.map((row, i) => {
-            const shaded = mode !== "export" && i % 2 === 0; // plain rows in the PDF/PNG
+            const shaded = i % 2 === 0;
             return (
               <div key={row.id} className={`card-grid items-center rounded-md py-1.5 ${shaded ? "bg-band" : ""}`}>
                 <div className="flex items-center gap-1.5 pl-1">
@@ -116,8 +106,8 @@ const PaperCard = forwardRef<
                   </div>
                 </div>
                 {DAY_KEYS.map((day) => (
-                  <div key={day} className={`cell rounded-md border border-line ${isEdit ? "h-[52px]" : "h-[46px]"} ${shaded ? "bg-cell-shaded" : "bg-white"}`}>
-                    <Cell row={row} entry={card.days[day]} day={day} mode={mode} locked={locked} onSet={(f, v) => actions.setDay(day, f, v)} />
+                  <div key={day} className={`cell rounded-md border border-line h-[52px] ${shaded ? "bg-cell-shaded" : "bg-white"}`}>
+                    <Cell row={row} entry={card.days[day]} day={day} locked={locked} onSet={(f, v) => actions.setDay(day, f, v)} />
                   </div>
                 ))}
               </div>
@@ -162,32 +152,27 @@ const PaperCard = forwardRef<
       {/* Reflections */}
       <section className="px-4 pt-3 pb-2">
         {REFLECTIONS.map((q) => (
-          <div key={q.key} className={isEdit ? "mb-3" : "mb-2"}>
+          <div key={q.key} className="mb-3">
             <div className="rounded-sm bg-brand px-3 py-2.5 font-serif text-[15px] font-bold text-white">{q.question}</div>
             <div className="flex items-start gap-4 px-1 pt-2">
-              <img src={q.icon} alt="" className={`shrink-0 object-contain ${isEdit ? "h-[86px] w-[100px]" : "h-[68px] w-[100px]"}`} />
+              <img src={q.icon} alt="" className="h-[86px] w-[100px] shrink-0 object-contain" />
               <div className="min-w-0 flex-1">
-                {isEdit ? (
-                  <AutoTextarea
-                    value={card.reflections[q.key]}
-                    disabled={locked}
-                    ariaLabel={q.question}
-                    onChange={(v) => actions.setReflection(q.key, v)}
-                    className="lined bg-transparent"
-                  />
-                ) : (
-                  <div className="lined whitespace-pre-wrap break-words">{card.reflections[q.key]}</div>
-                )}
+                <AutoTextarea
+                  value={card.reflections[q.key]}
+                  disabled={locked}
+                  ariaLabel={q.question}
+                  onChange={(v) => actions.setReflection(q.key, v)}
+                  className="lined bg-transparent"
+                />
               </div>
             </div>
           </div>
         ))}
       </section>
 
-      {!isEdit && <footer className="pb-4 text-center font-serif text-[13px] text-brand">In Service of HG Pranavananda Prabhuji</footer>}
     </div>
   );
-});
+}
 
 /* ───────────────────────── pieces ───────────────────────── */
 
@@ -200,22 +185,8 @@ function HeaderField(props: {
   inputClass?: string;
   inputMode?: "numeric" | "tel" | "text";
   maxLength?: number;
-  /** PDF / image: plain text that wraps, so long names are never cut off. */
-  text?: boolean;
 }) {
-  const { label, value, locked, onChange, className = "", inputClass = "flex-1", inputMode = "text", maxLength = 40, text = false } = props;
-  if (text) {
-    return (
-      <div className={`flex min-w-0 items-end gap-2 ${className}`}>
-        <span className="shrink-0 whitespace-nowrap">{label}</span>
-        <span
-          className={`min-w-0 border-b border-dashed border-white/80 px-1 pb-0.5 text-[13px] leading-snug font-medium break-words text-white ${inputClass}`}
-        >
-          {value || " "}
-        </span>
-      </div>
-    );
-  }
+  const { label, value, locked, onChange, className = "", inputClass = "flex-1", inputMode = "text", maxLength = 40 } = props;
   return (
     <label className={`flex min-w-0 items-end gap-2 ${className}`}>
       <span className="shrink-0 whitespace-nowrap">{label}</span>
@@ -274,18 +245,12 @@ function WeekRange({ weekStart, dates, onPickWeek }: { weekStart: string; dates:
   );
 }
 
-function Cell(props: { row: RowDef; entry: DayEntry; day: DayKey; mode: Mode; locked: boolean; onSet: (field: keyof DayEntry, value: string) => void }) {
-  const { row, entry, day, mode, locked, onSet } = props;
+function Cell(props: { row: RowDef; entry: DayEntry; day: DayKey; locked: boolean; onSet: (field: keyof DayEntry, value: string) => void }) {
+  const { row, entry, day, locked, onSet } = props;
   const v = entry[row.field];
   const label = `${DAY_LABELS[day]} – ${row.title}`;
 
   if (row.kind === "yesno") {
-    if (mode === "export")
-      return (
-        <div className={`flex h-full items-center justify-center text-[20px] font-bold ${v === "yes" ? "text-emerald-600" : "text-rose-500"}`}>
-          {v === "yes" ? "✓" : v === "no" ? "✗" : ""}
-        </div>
-      );
     return (
       <div className="flex h-full items-center px-1">
         <YesNoToggle size="sm" value={v as YesNo} label={label} locked={locked} onSet={(val) => onSet(row.field, val)} />
@@ -294,7 +259,6 @@ function Cell(props: { row: RowDef; entry: DayEntry; day: DayKey; mode: Mode; lo
   }
 
   if (row.kind === "text") {
-    if (mode === "export") return <Static>{v}</Static>;
     return (
       <input
         value={v}
@@ -308,7 +272,6 @@ function Cell(props: { row: RowDef; entry: DayEntry; day: DayKey; mode: Mode; lo
   }
 
   const content = <CellValue row={row} entry={entry} />;
-  if (mode === "export") return content;
 
   const empty = !rowHasValue(row, entry);
   return (

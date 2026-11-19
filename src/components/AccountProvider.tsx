@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from "react";
-import { KeyIcon, Lock } from "@/components/icons";
+import { KeyIcon, Lock, ShieldCheck } from "@/components/icons";
 import { DialogBadge, Modal, PassphraseInput } from "@/components/Modal";
 import {
   getServerSnapshot,
   getSnapshot,
   initAccount,
+  requestSetup,
   resetWithNewPassphrase,
   setupPassphrase,
   signOut,
@@ -32,16 +33,76 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   // The passphrase is optional: only shown when asked for from the account sheet.
   const showSetup = google && acc.phase === "needs-setup" && acc.setupRequest > 0 && laterAt !== acc.setupRequest;
 
+  // Once per account: a gentle reminder (on the dashboard) to protect the cards with a passphrase.
+  const [askProtect, setAskProtect] = useState(false);
+  const uid = acc.user?.uid;
+  useEffect(() => {
+    if (!google || acc.phase !== "needs-setup" || !uid || acc.setupRequest > 0) return;
+    if (window.location.pathname !== "/") return;
+    const key = `sadhana-card:protect-asked:${uid}`;
+    try {
+      if (localStorage.getItem(key)) return;
+    } catch {
+      return; // storage blocked: don't risk asking every time
+    }
+    const t = window.setTimeout(() => setAskProtect(true), 1200); // let the dashboard settle first
+    return () => window.clearTimeout(t);
+  }, [google, acc.phase, uid, acc.setupRequest]);
+
+  const closeProtect = (setUp: boolean) => {
+    try {
+      localStorage.setItem(`sadhana-card:protect-asked:${uid}`, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+    setAskProtect(false);
+    if (setUp) requestSetup();
+  };
+
   return (
     <>
       {children}
       {google && acc.phase === "locked" && <UnlockDialog email={acc.user!.email} />}
       {showSetup && <SetupDialog onLater={() => setLaterAt(acc.setupRequest)} />}
+      {askProtect && !showSetup && acc.phase === "needs-setup" && <ProtectPrompt onAnswer={closeProtect} />}
     </>
   );
 }
 
 const MIN_LEN = 8;
+
+/** One-time reminder: without a passphrase, cards live only on this device. */
+function ProtectPrompt({ onAnswer }: { onAnswer: (setUp: boolean) => void }) {
+  const id = useId();
+  return (
+    <Modal open onClose={() => onAnswer(false)} labelledBy={id}>
+      <div className="text-center">
+        <DialogBadge>
+          <ShieldCheck className="h-6 w-6" />
+        </DialogBadge>
+        <h2 id={id} className="mt-4 font-serif text-[22px] font-bold text-ink">
+          Protect your cards
+        </h2>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
+          Right now your cards can only be opened on <b className="text-ink">this phone</b>. If you change phones or clear your browser, they can&apos;t be
+          opened again.
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink/65">Set a passphrase once, and you can open your cards on any device by signing in.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onAnswer(true)}
+        className="mt-5 h-12 w-full rounded-2xl bg-brand text-[15px] font-semibold text-white shadow-sm hover:bg-brand-dark"
+      >
+        Set a passphrase
+      </button>
+      <button type="button" onClick={() => onAnswer(false)} className="mt-2 h-10 w-full text-sm font-medium text-ink/55">
+        Not now
+      </button>
+      <p className="text-center text-[12px] text-ink/45">You can do this any time from your account (tap your name).</p>
+    </Modal>
+  );
+}
 
 function strength(p: string): { label: string; tone: string; width: string } {
   let score = 0;
