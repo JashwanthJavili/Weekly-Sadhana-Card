@@ -16,7 +16,7 @@ import { InfoButton } from "@/components/ui";
 import { LockedError } from "@/lib/account";
 import { cardFileName, cardHref, cardProgress, mergeProfile } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
-import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
+import { buildCardImage, downloadBlob, shareFile } from "@/lib/export";
 import { repo } from "@/lib/storage";
 import { computeStreak } from "@/lib/streak";
 import { opensAt } from "@/lib/useUnlock";
@@ -102,17 +102,17 @@ export default function HomePage() {
 
   // ⋮ menu on a saved card
   const [menu, setMenu] = useState<{ card: WeekCard; el: HTMLElement } | null>(null);
-  // PDF export: the card is rendered off-screen, then turned into a PDF.
-  const [exporting, setExporting] = useState<{ card: WeekCard; kind: "download" | "share"; format: CardFormat } | null>(null);
+  // Image export: the report is rendered off-screen, then turned into a PNG.
+  const [exporting, setExporting] = useState<{ card: WeekCard; kind: "download" | "share" } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [share, setShare] = useState<{ file: File; text: string } | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  const startExport = async (card: WeekCard, kind: "download" | "share", format: CardFormat) => {
+  const startExport = async (card: WeekCard, kind: "download" | "share") => {
     setMenu(null);
     setExportError(null);
     const saved = await repo.getProfile().catch(() => null);
-    setExporting({ card: { ...card, profile: mergeProfile(card.profile, saved) }, kind, format });
+    setExporting({ card: { ...card, profile: mergeProfile(card.profile, saved) }, kind });
   };
 
   useEffect(() => {
@@ -123,15 +123,16 @@ export default function HomePage() {
         // Let the off-screen copy render first.
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         if (!exportRef.current) throw new Error("export node missing");
-        const { card, kind, format } = exporting;
-        const file = await buildCardFile(exportRef.current, format, cardFileName(card));
+        const { card, kind } = exporting;
+        const file = await buildCardImage(exportRef.current, cardFileName(card));
         if (cancelled) return;
         if (kind === "download") downloadBlob(file, file.name);
-        else
-          setShare({
-            file,
-            text: `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`,
-          });
+        else {
+          const text = `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`;
+          // Straight to the share menu with the image attached; the "Send" screen is only a fallback.
+          const r = await shareFile(file, text);
+          if (!cancelled && (r === "needs-tap" || r === "unsupported")) setShare({ file, text });
+        }
       } catch (e) {
         console.error(e);
         if (!cancelled) setExportError("Could not prepare your card. Please try again.");
@@ -293,7 +294,7 @@ export default function HomePage() {
                         className="mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink/45 hover:bg-band active:bg-band disabled:opacity-40"
                       >
                         {exporting?.card.weekStart === c.weekStart ? (
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand" aria-label="Preparing PDF" />
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand" aria-label="Preparing image" />
                         ) : (
                           <MoreVertical className="h-5 w-5" />
                         )}
@@ -327,16 +328,16 @@ export default function HomePage() {
               <MenuItem
                 icon={<Share className="h-[18px] w-[18px]" />}
                 title="Send to mentor"
-                sub={menuLock ?? "Share the PDF on WhatsApp"}
+                sub={menuLock ?? "Share the image on WhatsApp"}
                 disabled={!!menuLock}
-                onClick={() => void startExport(menu.card, "share", "pdf")}
+                onClick={() => void startExport(menu.card, "share")}
               />
               <MenuItem
                 icon={<Download className="h-[18px] w-[18px]" />}
                 title="Download"
-                sub={menuLock ?? "Save the PDF to this phone"}
+                sub={menuLock ?? "Save the image to this phone"}
                 disabled={!!menuLock}
-                onClick={() => void startExport(menu.card, "download", "pdf")}
+                onClick={() => void startExport(menu.card, "download")}
               />
               <MenuItem
                 danger
@@ -356,7 +357,7 @@ export default function HomePage() {
 
       <ShareDialog file={share?.file ?? null} text={share?.text ?? ""} onClose={() => setShare(null)} />
 
-      {/* Off-screen copy used to build the PDF */}
+      {/* Off-screen report used to make the image */}
       {exporting && (
         <div className="export-host" aria-hidden inert>
           <WeekReport ref={exportRef} card={exporting.card} />

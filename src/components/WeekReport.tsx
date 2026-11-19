@@ -1,12 +1,12 @@
-/* eslint-disable @next/next/no-img-element -- plain <img> keeps the PDF render reliable */
+/* eslint-disable @next/next/no-img-element -- plain <img> keeps the image render reliable */
 import { forwardRef, type ReactNode } from "react";
 import { DAY_LABELS, REFLECTIONS, ROWS, type RowDef } from "@/lib/card";
 import { formatDuration, formatTime12, formatWeekRange, weekDates } from "@/lib/dates";
 import { DAY_KEYS, type DayEntry, type WeekCard } from "@/lib/types";
 
 /**
- * The PDF version of a week: built to be read at a glance (by the person and their mentor),
- * not to look like the paper card. A4 portrait, rendered off-screen and turned into a PDF.
+ * The shareable image of a week: built to be read at a glance (by the person and their mentor),
+ * not to look like the paper card. Rendered off-screen and turned into a PNG.
  */
 
 const TEAL = "#008080";
@@ -108,7 +108,7 @@ export const WeekReport = forwardRef<HTMLDivElement, { card: WeekCard }>(functio
   const td: React.CSSProperties = { padding: "7px 4px", textAlign: "center", verticalAlign: "middle", borderBottom: `1px solid ${LINE}`, fontSize: 12 };
 
   return (
-    <div ref={ref} style={{ width: 794, minHeight: 1123, background: "#fff", color: INK, fontFamily: "Poppins, system-ui, sans-serif", boxSizing: "border-box", padding: 28 }}>
+    <div ref={ref} style={{ width: 794, background: "#fff", color: INK, fontFamily: "Poppins, system-ui, sans-serif", boxSizing: "border-box", padding: 28 }}>
       {/* Header */}
       <div style={{ background: TEAL, borderRadius: 16, padding: "18px 22px", color: "#fff" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>

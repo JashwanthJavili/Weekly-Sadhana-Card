@@ -9,7 +9,7 @@ import { WeekReport } from "@/components/WeekReport";
 import { InfoButton, PrivacyNotice } from "@/components/ui";
 import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
-import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
+import { buildCardImage, downloadBlob, shareFile } from "@/lib/export";
 import { LockedError } from "@/lib/account";
 import { useAccount } from "@/components/AccountProvider";
 import { ShareDialog } from "@/components/ShareDialog";
@@ -168,14 +168,14 @@ export default function CardEditor() {
     window.history.pushState(null, "", cardHref(weekStartISO(d)));
   };
 
-  const download = async (format: CardFormat) => {
+  const download = async () => {
     if (!card || !exportRef.current) return;
     setBusy("download");
     setError(null);
     try {
       // Save in the background — the download must not wait for the network.
       if (dirtyRef.current || !persistedRef.current) void persist(card);
-      const file = await buildCardFile(exportRef.current, format, cardFileName(card));
+      const file = await buildCardImage(exportRef.current, cardFileName(card));
       downloadBlob(file, file.name);
     } catch (e) {
       console.error(e);
@@ -190,13 +190,16 @@ export default function CardEditor() {
     : "";
 
   /** Step 1 of "Send to mentor": make the file (phones need a fresh tap to share, see step 2). */
-  const prepareShare = async (format: CardFormat) => {
+  const prepareShare = async () => {
     if (!card || !exportRef.current) return;
     setBusy("share");
     setError(null);
     try {
       if (dirtyRef.current || !persistedRef.current) void persist(card);
-      setShare(await buildCardFile(exportRef.current, format, cardFileName(card)));
+      const file = await buildCardImage(exportRef.current, cardFileName(card));
+      // Straight to the share menu (WhatsApp…) with the image attached; the "Send" screen is only a fallback.
+      const r = await shareFile(file, shareText);
+      if (r === "needs-tap" || r === "unsupported") setShare(file);
     } catch (e) {
       console.error(e);
       setError("Could not prepare your card. Please try again.");
@@ -270,10 +273,10 @@ export default function CardEditor() {
                 <Lock className="h-3.5 w-3.5" /> Opens {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
               </span>
             )}
-            <button type="button" onClick={() => void prepareShare("pdf")} disabled={!card || !!busy || !unlock.open} className="btn-outline">
+            <button type="button" onClick={() => void prepareShare()} disabled={!card || !!busy || !unlock.open} className="btn-outline">
               <Share className="h-4 w-4" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
             </button>
-            <button type="button" onClick={() => void download("pdf")} disabled={!card || !!busy || !unlock.open} className="btn-solid">
+            <button type="button" onClick={() => void download()} disabled={!card || !!busy || !unlock.open} className="btn-solid">
               <Download className="h-4 w-4" /> {busy === "download" ? "Preparing…" : "Download"}
             </button>
           </div>
@@ -323,13 +326,13 @@ export default function CardEditor() {
         }`}
       >
         <div className="mx-auto flex max-w-md items-center gap-2">
-          <button type="button" onClick={() => void download("pdf")}
+          <button type="button" onClick={() => void download()}
             disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-brand disabled:opacity-50"
           >
             <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
           </button>
-          <button type="button" onClick={() => void prepareShare("pdf")}
+          <button type="button" onClick={() => void prepareShare()}
             disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
           >
@@ -349,7 +352,7 @@ export default function CardEditor() {
       {card && <PrivacyNotice weekStart={card.weekStart} weekLabel={formatWeekRange(card.weekStart)} />}
       <ShareDialog file={share} text={shareText} onClose={() => setShare(null)} />
 
-      {/* ───────── Static copy used for PDF / image / print ───────── */}
+      {/* ───────── Off-screen report used to make the image ───────── */}
       {card && (
         <div className="export-host" aria-hidden inert>
           <WeekReport ref={exportRef} card={card} />

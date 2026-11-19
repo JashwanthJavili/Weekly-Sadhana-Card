@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { EyeOff, FileIcon, ImageIcon, KeyIcon, Lock, ShieldCheck, Smartphone, UserIcon } from "@/components/icons";
+import { EyeOff, KeyIcon, Lock, ShieldCheck, Smartphone, UserIcon } from "@/components/icons";
 import { CloseFab, Popover } from "@/components/pickers";
 
 /** Small round "i" button that opens help text (popover on desktop, bottom sheet on phones). */
@@ -224,57 +224,3 @@ export function PrivacyNotice({ weekStart, weekLabel }: { weekStart: string; wee
   );
 }
 
-/** Download menu: PDF / image / print. */
-/** A button that first asks "PDF or Image?", then calls onPick with the choice. */
-export function FormatMenu(props: {
-  title: string;
-  disabled?: boolean;
-  onPick: (format: "pdf" | "image") => void;
-  className: string;
-  children: ReactNode;
-}) {
-  const { title, disabled, onPick, className, children } = props;
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const pick = (f: "pdf" | "image") => {
-    setAnchor(null);
-    onPick(f);
-  };
-  return (
-    <>
-      <button
-        type="button"
-        disabled={disabled}
-        aria-haspopup="dialog"
-        onClick={(e) => {
-          const el = e.currentTarget;
-          setAnchor((a) => (a ? null : el));
-        }}
-        className={className}
-      >
-        {children}
-      </button>
-      <Popover anchor={anchor} open={!!anchor} onClose={() => setAnchor(null)} title={title}>
-        <FormatOptions onPick={pick} />
-      </Popover>
-    </>
-  );
-}
-
-/** The two choices shown in a "PDF or Image?" sheet. */
-export function FormatOptions({ onPick }: { onPick: (format: "pdf" | "image") => void }) {
-  const opt = (f: "pdf" | "image", icon: ReactNode, label: string, sub: string) => (
-    <button type="button" onClick={() => onPick(f)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-band active:bg-band">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">{icon}</span>
-      <span>
-        <span className="block font-semibold text-ink">{label}</span>
-        <span className="block text-xs text-ink/55">{sub}</span>
-      </span>
-    </button>
-  );
-  return (
-    <div className="min-w-[240px] space-y-1">
-      {opt("image", <ImageIcon />, "Image", "Recommended · easy to view on any phone")}
-      {opt("pdf", <FileIcon />, "PDF", "A4 page, best for printing")}
-    </div>
-  );
-}

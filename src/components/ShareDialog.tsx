@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { Download, FileIcon, ImageIcon, Share } from "@/components/icons";
 import { DialogBadge, Modal } from "@/components/Modal";
-import { canSharePdf, downloadBlob, sharePdfFile } from "@/lib/export";
+import { canShareFile, downloadBlob, shareFile } from "@/lib/export";
 
 /**
  * Step 2 of "Send to mentor": the file is ready. One tap opens the phone's share menu with the
@@ -13,7 +13,7 @@ import { canSharePdf, downloadBlob, sharePdfFile } from "@/lib/export";
 export function ShareDialog({ file, text, onClose }: { file: File | null; text: string; onClose: () => void }) {
   const id = useId();
   const [note, setNote] = useState<string | null>(null);
-  const canShare = !!file && canSharePdf(file);
+  const canShare = !!file && canShareFile(file);
   const isImage = !!file?.type.startsWith("image/");
   const what = isImage ? "image" : "PDF";
 
@@ -31,7 +31,7 @@ export function ShareDialog({ file, text, onClose }: { file: File | null; text: 
 
   const send = async () => {
     if (!file) return;
-    const r = await sharePdfFile(file, text);
+    const r = await shareFile(file, text);
     if (r === "shared") close();
     else if (r === "unsupported") fallback();
   };
