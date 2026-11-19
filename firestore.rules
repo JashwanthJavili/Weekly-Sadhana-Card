@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Sadhana Card data (contents are end-to-end encrypted in the browser):
-//   SadhanaCard/{uid}                    → { uid, updatedAt, profile?: sealed, keyWrap?: wrapped key }
+//   SadhanaCard/{uid}                    → { uid, updatedAt, profile?: sealed, accountKey?: data key (Google accounts), keyWrap?: older passphrase-wrapped key }
 //   SadhanaCard/{uid}/weeks/{weekStart}  → { uid, weekStart, updatedAt, v, iv, ct }
 // Each signed-in user (anonymous or Google) can only read and write their own documents,
 // and only small, encrypted payloads in the expected shape are accepted.
@@ -33,12 +33,18 @@ service cloud.firestore {
       allow create, update: if isOwner(uid)
         && request.resource.data.uid == uid
         && request.resource.data.updatedAt is string
-        && request.resource.data.keys().hasOnly(['uid', 'updatedAt', 'profile', 'keyWrap', 'v', 'iv', 'ct'])
+        && request.resource.data.keys().hasOnly(['uid', 'updatedAt', 'profile', 'accountKey', 'keyWrap', 'v', 'iv', 'ct'])
         && (!('profile' in request.resource.data)
             || (request.resource.data.profile is map
                 && request.resource.data.profile.keys().hasOnly(['v', 'iv', 'ct'])
                 && isSealed(request.resource.data.profile, 20000)))
-        && (!('keyWrap' in request.resource.data) || isKeyWrap(request.resource.data.keyWrap));
+        && (!('keyWrap' in request.resource.data) || isKeyWrap(request.resource.data.keyWrap))
+        // The account key (32 bytes, base64) can be set once and never changed, so two devices
+        // can't end up with different keys.
+        && (!('accountKey' in request.resource.data)
+            || (request.resource.data.accountKey is string && request.resource.data.accountKey.size() == 44))
+        && (resource == null || !('accountKey' in resource.data)
+            || request.resource.data.get('accountKey', '') == resource.data.accountKey);
 
       match /weeks/{weekStart} {
         allow read, delete: if isOwner(uid);

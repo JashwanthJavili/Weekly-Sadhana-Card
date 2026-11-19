@@ -4,9 +4,11 @@
  * - Card data is encrypted with a random AES-256-GCM "data key" inside the browser.
  * - The data key is kept in this browser's IndexedDB as a *non-extractable* CryptoKey:
  *   page code can use it, but it can never be read out.
- * - Signed-in (Google) users additionally store a copy of the data key *wrapped* with a key
- *   derived from their passphrase (PBKDF2-SHA256, 600k iterations). The passphrase never
- *   leaves the device, so the server only ever holds ciphertext.
+ * - Signed-in (Google) users keep their data key in their own account record
+ *   (`SadhanaCard/{uid}.accountKey`), which only that signed-in account can read (see
+ *   firestore.rules), so their cards open on every device they sign in on.
+ * - Older accounts may still have a passphrase-wrapped copy (PBKDF2-SHA256, 600k iterations);
+ *   it is moved to the account key the first time it is unlocked.
  * - Each ciphertext is bound to its document path as associated data, so encrypted documents
  *   cannot be swapped around.
  */
@@ -141,4 +143,24 @@ export async function open<T>(key: CryptoKey, sealed: Pick<Sealed, "iv" | "ct">,
     fromB64(sealed.ct),
   );
   return JSON.parse(dec.decode(plain)) as T;
+}
+
+/* ───────── account key (Google accounts) ───────── */
+
+/** A new data key for a Google account, plus its text form to keep in that account. */
+export async function newAccountKey(): Promise<{ text: string; key: CryptoKey }> {
+  const raw = bytes(32);
+  const text = toB64(raw);
+  const key = await importDataKey(raw);
+  raw.fill(0);
+  return { text, key };
+}
+
+/** Turn the account key text back into a usable (non-extractable) key. */
+export async function importAccountKey(text: string): Promise<CryptoKey> {
+  const raw = fromB64(text);
+  if (raw.length !== 32) throw new Error("Invalid account key");
+  const key = await importDataKey(raw);
+  raw.fill(0);
+  return key;
 }

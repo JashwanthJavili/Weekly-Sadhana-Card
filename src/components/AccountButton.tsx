@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from "react";
 import { useAccount } from "@/components/AccountProvider";
-import { ChevronRight, Cloud, GoogleG, KeyIcon, LogOut } from "@/components/icons";
+import { ChevronRight, Cloud, GoogleG, LogOut } from "@/components/icons";
 import { Popover } from "@/components/pickers";
-import { cancelGoogleSignIn, requestSetup, signInWithGoogle, signOut } from "@/lib/account";
+import { cancelGoogleSignIn, signInWithGoogle, signOut } from "@/lib/account";
 
 function Avatar({ name, photoURL, size = "h-9 w-9" }: { name: string; photoURL: string; size?: string }) {
   const [broken, setBroken] = useState(false);
@@ -82,7 +82,7 @@ export function AccountRow() {
           </span>
           <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-[14px] font-semibold text-ink">{busy ? "Signing in… tap to cancel" : "Continue with Google"}</span>
-            <span className="mt-0.5 block truncate text-[12px] leading-snug text-ink/65"><b className="font-semibold text-brand">Optional</b> · save to your account</span>
+            <span className="mt-0.5 block truncate text-[12px] leading-snug text-ink/65"><b className="font-semibold text-brand">Optional</b> · sync your cards to every phone</span>
           </span>
           <ChevronRight className="h-4 w-4 text-ink/30" />
         </button>
@@ -109,7 +109,7 @@ export function AccountRow() {
         <span className="min-w-0 flex-1 leading-tight">
           <span className="block truncate text-[14px] font-semibold text-ink">{name}</span>
           <span className="flex items-center gap-1 text-[12px] text-emerald-700">
-            <Cloud className="h-3.5 w-3.5" /> Saved to your account
+            <Cloud className="h-3.5 w-3.5" /> Synced to your account
           </span>
         </span>
         <ChevronRight className="h-4 w-4 text-ink/30" />
@@ -125,32 +125,10 @@ export function AccountRow() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-band p-3 text-[13px] leading-snug text-ink/70">
-            Your cards are saved securely in this Google account.
-            {acc.phase === "ready" ? (
-              <span className="mt-1 block font-medium text-emerald-700">Protected with your card password. You can open them on any device.</span>
-            ) : (
-              <span className="mt-1 block font-medium text-amber-700">Not protected yet. Right now they open only on this phone.</span>
-            )}
+          <div className="mt-4 flex items-start gap-2.5 rounded-2xl bg-band p-3 text-[13px] leading-snug text-ink/70">
+            <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+            <span>Your cards are saved securely in this Google account and open on any phone where you sign in.</span>
           </div>
-
-          {acc.phase === "needs-setup" && (
-            <button
-              type="button"
-              onClick={() => {
-                setAnchor(null);
-                requestSetup();
-              }}
-              className="mt-2 flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-[13px] hover:bg-band"
-            >
-              <KeyIcon className="h-4 w-4 shrink-0 text-brand" />
-              <span className="flex-1">
-                <b className="block text-ink">Protect your cards</b>
-                <span className="text-ink/55">Set a card password to open them on any device</span>
-              </span>
-              <ChevronRight className="h-4 w-4 text-ink/30" />
-            </button>
-          )}
 
           {confirmOut ? (
             <div className="mt-3 rounded-2xl bg-rose-50 p-3 ring-1 ring-rose-200">

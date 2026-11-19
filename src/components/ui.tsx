@@ -91,22 +91,22 @@ function SecurityContent() {
         {item(
           <EyeOff className="h-[18px] w-[18px]" />,
           "Stored securely",
-          "Only encrypted data is stored online. It cannot be read without your personal key, including by the app administrators.",
+          "Your cards are stored online only in encrypted form, and the database rules allow only your own account to access them.",
         )}
         {item(
           <UserIcon className="h-[18px] w-[18px]" />,
           "Access only to you",
-          "Each account can open only its own cards. Signing in is optional; you are given a private account automatically.",
+          "Each account can open only its own cards. Signing in is optional; without it, you are given a private account on this phone automatically.",
         )}
         {item(
           <KeyIcon className="h-[18px] w-[18px]" />,
           "Your personal key",
-          "The key that opens your cards is kept on this device. If you set a card password, a protected copy of the key is saved to your account.",
+          "A key that opens your cards is created just for you. When you sign in with Google, it is kept securely in your account, so your cards sync automatically.",
         )}
         {item(
           <Smartphone className="h-[18px] w-[18px]" />,
-          "Using another device",
-          "To open your cards on a new phone, or after clearing your browser, sign in with Google and set a card password from your account. Please keep the password safe, as it cannot be recovered.",
+          "Using another phone",
+          "Sign in with the same Google account and your cards will open automatically. Without signing in, your cards stay only on this phone and are lost if the browser data is cleared.",
         )}
       </ul>
     </div>
@@ -122,7 +122,7 @@ export function PrivacyBadge() {
       </span>
       <span className="text-[13px] leading-snug">
         <b className="block text-ink">Your data is protected</b>
-        <span className="text-ink/60">Your entries are encrypted and can be viewed only by you.</span>
+        <span className="text-ink/60">Your entries are encrypted and linked only to your account.</span>
       </span>
     </div>
   );
@@ -199,8 +199,8 @@ export function PrivacyNotice({ weekStart, weekLabel }: { weekStart: string; wee
 
         <ul className="mt-5 space-y-3.5 text-left">
           {point(<ShieldCheck className="h-5 w-5" />, "Encrypted on your device", "Your entries are encrypted before they are saved.")}
-          {point(<EyeOff className="h-5 w-5" />, "Private to you", "The contents of your card can be viewed only by you.")}
-          {point(<Smartphone className="h-5 w-5" />, "Access on any device", "Sign in with Google and set a card password to open your cards on another device.")}
+          {point(<EyeOff className="h-5 w-5" />, "Private to you", "Only your account can access your cards.")}
+          {point(<Smartphone className="h-5 w-5" />, "Synced to your account", "Sign in with Google to keep your cards safe and open them on any phone.")}
         </ul>
 
         <button

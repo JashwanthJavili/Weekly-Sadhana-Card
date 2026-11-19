@@ -29,20 +29,22 @@ Live: https://weeklysadhanacard.web.app
 ## Storage (Firestore, end-to-end encrypted)
 
 ```
-SadhanaCard/{uid}                    → { uid, updatedAt, profile: {v,iv,ct}, keyWrap? }  encrypted profile (+ passphrase-locked key)
+SadhanaCard/{uid}                    → { uid, updatedAt, profile: {v,iv,ct}, accountKey?, keyWrap? }  encrypted profile (+ account key)
 SadhanaCard/{uid}/weeks/{weekStart}  → { uid, weekStart, v, iv, ct, updatedAt }        encrypted card
 ```
 
 - Each browser signs in with **Firebase Anonymous Auth**, and `firestore.rules` lets a user
   read and write only their own documents. The rules also accept only encrypted payloads.
 - Card contents are encrypted **in the browser** with AES-256-GCM (`src/lib/crypto.ts`).
-  The key is generated per user, stored non-extractable in IndexedDB and never uploaded as is,
-  so the database owner sees only ciphertext plus the week date and last-saved time.
-- **Don't lose your cards**: without a passphrase the key exists only on that phone, so clearing
-  site data or changing phones makes old cards unreadable. Signed-in users are reminded once on
-  the home page (and can do it any time from the account sheet) to set a passphrase: the data key
-  is then stored in `SadhanaCard/{uid}.keyWrap`, encrypted with a key derived from the passphrase
-  (PBKDF2-SHA256, 600k iterations). Forgetting the passphrase means the old cards can't be opened.
+  The key is generated per user and kept non-extractable in IndexedDB on each device.
+- **Sync with Google sign-in**: guests get a key that lives only on their phone. When someone signs
+  in with Google, their data key is kept in their own account record
+  (`SadhanaCard/{uid}.accountKey`). The rules let only that signed-in account read it, and make it
+  permanent once set. Every phone they sign in on picks it up, so cards open automatically with no
+  password. Cards made earlier (as a guest, or with the older card password) are moved to the
+  account key automatically; an older password-protected account asks for its password once.
+  Note: since the key is stored with the account, someone with full admin access to the Firebase
+  project could in principle read the cards; other users never can.
 - Older cards may still carry `yuvaSetu` / `nbsClass` / `status` fields: the names are kept for
   compatibility (they now show as Gita For Youth / Japa Class; `status` is no longer used).
 

@@ -2,10 +2,11 @@
  * Who is signed in, and the encryption key for their cards.
  *
  * - Everyone starts with a private anonymous account and a key that lives only on this device.
- * - "Sign in with Google" (optional) links that account to Google, so the cards follow the person.
- *   To keep cards end-to-end encrypted across devices, the person creates a passphrase: the data
- *   key is stored in Firestore only *wrapped* with that passphrase.
- * - On a new device: sign in → enter passphrase → cards unlock.
+ * - "Sign in with Google" (optional) links that account to Google. The account's data key is then
+ *   kept in the account record (`accountKey`, readable only by that account), so the cards open
+ *   on every device the person signs in on, with nothing else to remember.
+ * - Cards made before (with a device-only key, or an older passphrase) are moved to the account
+ *   key automatically.
  *
  * This is a tiny external store (subscribe / getSnapshot) used with React's useSyncExternalStore.
  */
@@ -20,10 +21,10 @@ import {
   type OAuthCredential,
   type User,
 } from "firebase/auth";
-import { deleteField, getDoc, getDocFromCache, getDocs, writeBatch } from "firebase/firestore";
-import { createDeviceKey, deleteStoredKey, generateDataKey, loadStoredKey, storeKey, unwrapKey, wrapKey, type KeyWrap } from "./crypto";
+import { deleteField, getDoc, getDocFromServer, getDocs, setDoc, writeBatch } from "firebase/firestore";
+import { createDeviceKey, deleteStoredKey, importAccountKey, loadStoredKey, newAccountKey, storeKey, unwrapKey, type KeyWrap } from "./crypto";
 import { authErrorMessage, getFirebase } from "./firebase";
-import { encodeCard, encodeProfile, readAllCards, readProfile, userRef, weekRef, weeksRef } from "./storage/firestoreCodec";
+import { decodeCard, decodeProfile, encodeCard, encodeProfile, readAllCards, readProfile, userRef, weekRef, weeksRef } from "./storage/firestoreCodec";
 import type { Profile, WeekCard } from "./types";
 
 export type Phase = "loading" | "ready" | "needs-setup" | "locked" | "error";
@@ -96,7 +97,89 @@ async function fetchKeyWrap(uid: string): Promise<KeyWrap | null> {
   return ((await getDoc(userRef(uid))).data()?.keyWrap as KeyWrap | undefined) ?? null;
 }
 
-/** Make sure someone is signed in, then work out their key situation. */
+/* ───────── account key (Google accounts) ───────── */
+
+/** This device already holds the account's key (so no server round-trip is needed on start). */
+const syncedFlag = (uid: string) => `sadhana-card:account-key:${uid}`;
+const isSynced = (uid: string) => {
+  try {
+    return localStorage.getItem(syncedFlag(uid)) === "1";
+  } catch {
+    return false;
+  }
+};
+const markSynced = (uid: string, on: boolean) => {
+  try {
+    if (on) localStorage.setItem(syncedFlag(uid), "1");
+    else localStorage.removeItem(syncedFlag(uid));
+  } catch {
+    /* ignore */
+  }
+};
+
+/** Re-encrypt anything in this account that `target` can't read but one of `others` can. */
+async function moveToKey(uid: string, target: CryptoKey, others: CryptoKey[]) {
+  if (!others.length) return;
+  const batch = writeBatch(getFirebase().db);
+  let writes = 0;
+  for (const d of (await getDocs(weeksRef(uid))).docs) {
+    if (await decodeCard(uid, target, d.id, d.data())) continue;
+    for (const k of others) {
+      const card = await decodeCard(uid, k, d.id, d.data());
+      if (card) {
+        batch.set(weekRef(uid, d.id), await encodeCard(uid, target, card));
+        writes++;
+        break;
+      }
+    }
+  }
+  const userData = (await getDoc(userRef(uid))).data();
+  if (userData?.profile && !(await decodeProfile(uid, target, userData))) {
+    for (const k of others) {
+      const profile = await decodeProfile(uid, k, userData);
+      if (profile) {
+        batch.set(userRef(uid), { uid, updatedAt: new Date().toISOString(), profile: await encodeProfile(uid, target, profile) }, { merge: true });
+        writes++;
+        break;
+      }
+    }
+  }
+  if (writes) await batch.commit();
+}
+
+/**
+ * The key for a Google account, kept in the account record so every device can use it.
+ * Creates it the first time (moving cards made with `fallbacks` over to it).
+ * Needs the server; throws when offline so the caller can keep using the device key for now.
+ */
+async function accountKeyFor(uid: string, fallbacks: CryptoKey[]): Promise<CryptoKey> {
+  const data = (await getDocFromServer(userRef(uid))).data();
+  const existing = data?.accountKey;
+  let key: CryptoKey;
+  if (typeof existing === "string") {
+    key = await importAccountKey(existing);
+  } else if (data?.keyWrap && !fallbacks.length) {
+    // An older account protected with a card password: its cards need that password once.
+    throw new Error("needs-card-password");
+  } else {
+    const fresh = await newAccountKey();
+    try {
+      // The rules make the account key permanent once set, so two devices can't each set a different one.
+      await setDoc(userRef(uid), { uid, updatedAt: new Date().toISOString(), accountKey: fresh.text }, { merge: true });
+      key = fresh.key;
+    } catch (e) {
+      const now = (await getDocFromServer(userRef(uid))).data()?.accountKey;
+      if (typeof now !== "string") throw e;
+      key = await importAccountKey(now); // another device set it first
+    }
+  }
+  await moveToKey(uid, key, fallbacks);
+  await storeKey(uid, key);
+  markSynced(uid, true);
+  return key;
+}
+
+/** Make sure someone is signed in, then work out their key. */
 async function establish() {
   const { auth } = getFirebase();
   await auth.authStateReady();
@@ -116,33 +199,33 @@ async function establish() {
     return;
   }
 
-  if (stored) {
-    // Fast path: this device already holds the key, so the cards can load right away.
-    // Whether a passphrase exists only matters for the account sheet: read it from the
-    // local cache now and confirm with the server in the background.
+  const uid = user.uid;
+  // Fast path: this device already has the account key.
+  if (stored && isSynced(uid)) {
     key = stored;
-    const uid = user.uid;
-    const cached = await getDocFromCache(userRef(uid)).then(
-      (d) => !!d.data()?.keyWrap,
-      () => false,
-    );
-    set({ phase: cached ? "ready" : "needs-setup", user: toUser(user), error: null, version: snap.version + 1 });
-    fetchKeyWrap(uid)
-      .then((w) => {
-        const phase = w ? "ready" : "needs-setup";
-        if (snap.user?.uid === uid && key === stored && snap.phase !== phase && (snap.phase === "ready" || snap.phase === "needs-setup")) set({ phase });
-      })
-      .catch(() => undefined);
+    set({ phase: "ready", user: toUser(user), error: null, version: snap.version + 1 });
     return;
   }
 
-  const wrap = await fetchKeyWrap(user.uid);
-  if (wrap) {
-    key = null;
-    set({ phase: "locked", user: toUser(user), error: null, version: snap.version + 1 });
-  } else {
-    key = await createDeviceKey(user.uid);
-    set({ phase: "needs-setup", user: toUser(user), error: null, version: snap.version + 1 });
+  try {
+    key = await accountKeyFor(uid, stored ? [stored] : []);
+    set({ phase: "ready", user: toUser(user), error: null, version: snap.version + 1 });
+  } catch (e) {
+    console.error(e);
+    if (stored) {
+      // Offline for now: keep working on this device; it syncs on the next start.
+      key = stored;
+      set({ phase: "ready", user: toUser(user), error: null, version: snap.version + 1 });
+      return;
+    }
+    // Older accounts protected with a passphrase, opened for the first time on this device.
+    const wrap = await fetchKeyWrap(uid).catch(() => null);
+    if (wrap) {
+      key = null;
+      set({ phase: "locked", user: toUser(user), error: null, version: snap.version + 1 });
+      return;
+    }
+    throw new Error("Sorry, we couldn't open your cards. Please check your internet connection and try again.");
   }
 }
 
@@ -184,41 +267,6 @@ async function applyMerge() {
   }
   if (writes) await batch.commit();
   pendingMerge = null;
-}
-
-/** Encrypt everything with a fresh key and store that key locked with the passphrase. */
-async function rekeyWithPassphrase(passphrase: string) {
-  if (!snap.user || snap.user.isAnonymous) throw new Error("Please sign in first.");
-  const { uid } = snap.user;
-  const old = key;
-  const cards = old ? await readAllCards(uid, old) : [];
-  const profile = old ? await readProfile(uid, old) : null;
-
-  const { raw, key: fresh } = await generateDataKey();
-  const keyWrap = await wrapKey(raw, passphrase);
-  raw.fill(0);
-
-  const batch = writeBatch(getFirebase().db);
-  for (const c of cards) batch.set(weekRef(uid, c.weekStart), await encodeCard(uid, fresh, c));
-  batch.set(
-    userRef(uid),
-    {
-      uid,
-      updatedAt: new Date().toISOString(),
-      keyWrap,
-      profile: profile ? await encodeProfile(uid, fresh, profile) : deleteField(),
-      v: deleteField(),
-      iv: deleteField(),
-      ct: deleteField(),
-    },
-    { merge: true },
-  );
-  await batch.commit();
-
-  await storeKey(uid, fresh);
-  key = fresh;
-  set({ phase: "ready", version: snap.version + 1 });
-  await applyMerge();
 }
 
 /* ───────── public API ───────── */
@@ -318,10 +366,6 @@ export async function signInWithGoogle(): Promise<Result> {
   return finish(outcome);
 }
 
-export function setupPassphrase(passphrase: string): Promise<Result> {
-  return run(() => rekeyWithPassphrase(passphrase));
-}
-
 export function unlock(passphrase: string): Promise<Result> {
   return run(async () => {
     if (!snap.user) throw new Error("Please sign in first.");
@@ -333,15 +377,14 @@ export function unlock(passphrase: string): Promise<Result> {
     } catch {
       throw new Error("That card password doesn't match. Please check it and try again.");
     }
-    await storeKey(snap.user.uid, k);
-    key = k;
+    key = await accountKeyFor(snap.user.uid, [k]);
     set({ phase: "ready", version: snap.version + 1 });
     await applyMerge();
   });
 }
 
-/** Forgot the passphrase: delete the (unreadable) cards and start again with a new passphrase. */
-export function resetWithNewPassphrase(passphrase: string): Promise<Result> {
+/** Older passphrase accounts that forgot it: delete the unreadable cards and continue with the account key. */
+export function startFresh(): Promise<Result> {
   return run(async () => {
     if (!snap.user || snap.user.isAnonymous) throw new Error("Please sign in first.");
     const { uid } = snap.user;
@@ -349,8 +392,9 @@ export function resetWithNewPassphrase(passphrase: string): Promise<Result> {
     (await getDocs(weeksRef(uid))).forEach((d) => batch.delete(d.ref));
     batch.set(userRef(uid), { uid, updatedAt: new Date().toISOString(), keyWrap: deleteField(), profile: deleteField() }, { merge: true });
     await batch.commit();
-    key = null;
-    await rekeyWithPassphrase(passphrase);
+    key = await accountKeyFor(uid, []);
+    set({ phase: "ready", version: snap.version + 1 });
+    await applyMerge();
   });
 }
 
@@ -358,7 +402,10 @@ export function signOut(): Promise<Result> {
   return run(async () => {
     const { auth } = getFirebase();
     const user = auth.currentUser;
-    if (user && !user.isAnonymous) await deleteStoredKey(user.uid); // nobody else can open the cards on this device
+    if (user && !user.isAnonymous) {
+      await deleteStoredKey(user.uid); // the cards stay in the account; this device forgets the key
+      markSynced(user.uid, false);
+    }
     key = null;
     pendingMerge = null;
     await fbSignOut(auth);
@@ -366,7 +413,3 @@ export function signOut(): Promise<Result> {
   });
 }
 
-/** Ask the UI to show the passphrase setup again ("Finish setup"). */
-export function requestSetup() {
-  set({ setupRequest: snap.setupRequest + 1 });
-}
