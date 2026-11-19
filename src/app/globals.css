@@ -198,6 +198,9 @@ textarea {
 
 html {
   -webkit-tap-highlight-color: transparent;
+  /* Stop phones from "boosting" text sizes on their own; the layout is already sized for phones. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Off-screen copy of the card used for PNG/PDF export and printing */

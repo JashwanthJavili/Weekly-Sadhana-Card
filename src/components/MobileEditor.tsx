@@ -87,7 +87,7 @@ export function MobileEditor(props: { card: WeekCard; today?: string; locked: bo
 
       {/* Weekly */}
       <div className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="mb-3 font-serif text-[17px] font-bold text-ink">YUVA Setu class (Friday)</div>
+        <div className="mb-3 font-serif text-[17px] font-bold text-ink">Gita For Youth class (Friday)</div>
         <div className="grid grid-cols-2 gap-2">
           {(
             [
@@ -142,11 +142,11 @@ function Row(props: { row: RowDef; entry: DayEntry; day: DayKey; locked: boolean
   const { row, entry, day, locked, onSet } = props;
   const title = `${DAY_LABELS[day]} · ${row.title}`;
   const icon = <img src={row.icon} alt="" className="h-8 w-8 shrink-0 object-contain" />;
-  const name = <span className="min-w-0 flex-1 text-[15px] font-medium text-ink">{row.title}</span>;
+  const name = <span className="min-w-0 flex-1 text-[15px] leading-tight font-medium text-ink max-[360px]:text-[14px]">{row.title}</span>;
 
   if (row.kind === "yesno") {
     return (
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3 max-[360px]:gap-2.5 max-[360px]:px-3">
         {icon}
         {name}
         <YesNoToggle value={entry.nbsClass as YesNo} label={title} locked={locked} onSet={(v) => onSet(row.field, v)} />
@@ -169,7 +169,7 @@ function Row(props: { row: RowDef; entry: DayEntry; day: DayKey; locked: boolean
           locked={locked}
           ariaLabel={`${title} ${which === "first" ? "rounds" : "time"}: ${v ? fieldText(row, field, v) : "not set"}`}
           onSet={onSet}
-          className={`rounded-full px-3 py-1.5 text-[14px] font-semibold transition-colors ${
+          className={`rounded-full px-3 py-1.5 text-[14px] font-semibold whitespace-nowrap transition-colors max-[360px]:px-2.5 max-[360px]:text-[13px] ${
             v ? "bg-brand/10 text-brand" : "bg-black/[0.05] font-normal text-ink/40"
           } data-[open]:ring-2 data-[open]:ring-brand`}
         >
@@ -178,10 +178,10 @@ function Row(props: { row: RowDef; entry: DayEntry; day: DayKey; locked: boolean
       );
     };
     return (
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3 max-[360px]:gap-2.5 max-[360px]:px-3">
         {icon}
         {name}
-        <div className="flex gap-1.5">
+        <div className="flex shrink-0 gap-1.5">
           {chip("first", row.field, "Rounds")}
           {chip("second", row.field2!, "Time")}
         </div>
@@ -198,7 +198,7 @@ function Row(props: { row: RowDef; entry: DayEntry; day: DayKey; locked: boolean
       locked={locked}
       ariaLabel={`${title}: ${v ? fieldText(row, row.field, v) : "not set"}`}
       onSet={onSet}
-      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-band data-[open]:bg-band"
+      className="flex w-full items-center gap-3 px-4 py-3 text-left max-[360px]:gap-2.5 max-[360px]:px-3 transition-colors active:bg-band data-[open]:bg-band"
     >
       {icon}
       {name}
@@ -285,7 +285,7 @@ function SevaRow(props: { icon: React.ReactNode; title: string; label: string; v
           setShowIdeas(false);
           setAnchor(e.currentTarget);
         }}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-band disabled:cursor-default"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left max-[360px]:gap-2.5 max-[360px]:px-3 transition-colors active:bg-band disabled:cursor-default"
       >
         {icon}
         <span className="shrink-0 text-[15px] font-medium text-ink">{label}</span>

@@ -58,7 +58,7 @@ function HelpContent() {
       <ol className="space-y-3">
         {step(1, <>Pick a <b className="text-ink">day</b>, then tap any item to fill it.</>)}
         {step(2, <>For times, <b className="text-ink">scroll the wheels</b> and tap Done.</>)}
-        {step(3, <>NBS class: tap <b className="text-ink">Yes</b> or <b className="text-ink">No</b>. Seva &amp; reflections: just type.</>)}
+        {step(3, <>Japa class: tap <b className="text-ink">Yes</b> or <b className="text-ink">No</b>. Seva &amp; reflections: just type.</>)}
         {step(4, <>It saves by itself. At week end, tap <b className="text-ink">Complete</b> and download.</>)}
       </ol>
       <PrivacyBadge />
@@ -273,8 +273,8 @@ export function FormatOptions({ onPick }: { onPick: (format: "pdf" | "image") =>
   );
   return (
     <div className="min-w-[240px] space-y-1">
+      {opt("image", <ImageIcon />, "Image", "Recommended · easy to view on any phone")}
       {opt("pdf", <FileIcon />, "PDF", "A4 page, best for printing")}
-      {opt("image", <ImageIcon />, "Image", "A picture, easy to view on phone")}
     </div>
   );
 }

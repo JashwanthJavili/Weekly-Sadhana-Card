@@ -126,9 +126,9 @@ const PaperCard = forwardRef<
         </div>
       </section>
 
-      {/* YUVA Setu */}
+      {/* Gita For Youth (stored as yuvaSetu) */}
       <section className="mx-4 mt-2 flex items-center gap-8 border-y-2 border-dotted border-brand/70 px-2 py-2">
-        <span className="font-serif text-[16px] font-bold text-brand">YUVA Setu class (Friday):</span>
+        <span className="font-serif text-[16px] font-bold text-brand">Gita For Youth class (Friday):</span>
         {(
           [
             ["attended", "Attended"],

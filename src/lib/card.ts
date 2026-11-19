@@ -33,7 +33,7 @@ export const ROWS: RowDef[] = [
     field2: "chantingTime",
   },
   { id: "exercise", label: ["Exercise"], title: "Exercise", icon: "/icons/exercise.png", kind: "duration", field: "exercise", defaultValue: "30" },
-  { id: "nbs", label: ["Attended", "NBS Class"], title: "Attended NBS class", icon: "/icons/nbs.png", kind: "yesno", field: "nbsClass" },
+  { id: "nbs", label: ["Attended", "Japa Class"], title: "Attended Japa class", icon: "/icons/nbs.png", kind: "yesno", field: "nbsClass" },
   { id: "seva", label: ["Seva"], title: "Seva", icon: "/icons/seva.png", kind: "text", field: "seva" },
   { id: "daySleep", label: ["Day", "Sleep"], title: "Day sleep", icon: "/icons/daysleep.png", kind: "duration", field: "daySleep", defaultValue: "30" },
   { id: "screen", label: ["Screen", "Time"], title: "Screen time", icon: "/icons/screen.png", kind: "duration", field: "screenTime", defaultValue: "60" },

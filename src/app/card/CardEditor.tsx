@@ -20,6 +20,15 @@ type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
 const AUTOSAVE_MS = 700;
 
+/** "16 – 22 Nov" (or "27 Oct – 2 Nov"): fits narrow phones. */
+function shortWeekRange(weekStart: string): string {
+  const a = parseISODate(weekStart);
+  if (!a) return weekStart;
+  const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6);
+  const m = (d: Date) => d.toLocaleString("en-GB", { month: "short" });
+  return a.getMonth() === b.getMonth() ? `${a.getDate()} – ${b.getDate()} ${m(b)}` : `${a.getDate()} ${m(a)} – ${b.getDate()} ${m(b)}`;
+}
+
 export default function CardEditor() {
   const params = useSearchParams();
   const week = params.get("week") ?? "";
@@ -210,11 +219,12 @@ export default function CardEditor() {
 
   const weekNav = (
     <div className="flex min-w-0 items-center">
-      <button className="flex h-9 w-9 items-center justify-center rounded-full text-ink/70 hover:bg-band" onClick={() => goToWeek(shiftWeek(weekStart, -1))} aria-label="Previous week">
+      <button className="flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-ink/70 hover:bg-band sm:w-9" onClick={() => goToWeek(shiftWeek(weekStart, -1))} aria-label="Previous week">
         <ChevronLeft />
       </button>
-      <label className="relative cursor-pointer truncate rounded-lg px-1.5 py-1 text-[15px] font-semibold text-ink hover:bg-band">
-        {formatWeekRange(weekStart)}
+      <label className="relative min-w-0 cursor-pointer truncate rounded-lg px-1 py-1 text-[clamp(13px,4.2vw,15px)] font-semibold text-ink hover:bg-band">
+        <span className="sm:hidden">{shortWeekRange(weekStart)}</span>
+        <span className="hidden sm:inline">{formatWeekRange(weekStart)}</span>
         <input
           type="date"
           value={weekStart}
@@ -223,7 +233,7 @@ export default function CardEditor() {
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </label>
-      <button className="flex h-9 w-9 items-center justify-center rounded-full text-ink/70 hover:bg-band" onClick={() => goToWeek(shiftWeek(weekStart, 1))} aria-label="Next week">
+      <button className="flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-ink/70 hover:bg-band sm:w-9" onClick={() => goToWeek(shiftWeek(weekStart, 1))} aria-label="Next week">
         <ChevronRight />
       </button>
     </div>
@@ -233,7 +243,7 @@ export default function CardEditor() {
     <main className="flex min-h-dvh flex-col">
       {/* ───────── Top bar ───────── */}
       <div className="screen-only sticky top-0 z-20 border-b border-black/[0.06] bg-white">
-        <div className="mx-auto flex h-14 max-w-[900px] items-center gap-1 px-2 lg:px-4">
+        <div className="mx-auto flex h-14 max-w-[900px] items-center gap-0.5 px-1.5 sm:gap-1 sm:px-2 lg:px-4">
           <a
             href="/"
             onClick={(e) => {
@@ -248,7 +258,7 @@ export default function CardEditor() {
             <Home className="h-5 w-5" />
             <span className="hidden lg:inline">My cards</span>
           </a>
-          <div className="flex flex-1 justify-center lg:flex-none lg:justify-start">{weekNav}</div>
+          <div className="flex min-w-0 flex-1 justify-center lg:flex-none lg:justify-start">{weekNav}</div>
           <SaveIndicator state={saveState} savedAt={savedAt} />
 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
@@ -309,7 +319,7 @@ export default function CardEditor() {
             title="Download as…"
             onPick={(f) => void download(f)}
             disabled={!card || !!busy}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-white font-semibold text-brand disabled:opacity-50"
+            className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-brand disabled:opacity-50"
           >
             <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
           </FormatMenu>
@@ -317,7 +327,7 @@ export default function CardEditor() {
             title="Send to mentor as…"
             onPick={(f) => void prepareShare(f)}
             disabled={!card || !!busy}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
+            className="flex h-12 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
           >
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
           </FormatMenu>
