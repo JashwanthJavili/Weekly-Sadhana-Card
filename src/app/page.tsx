@@ -5,18 +5,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AccountRow } from "@/components/AccountButton";
 import { useAccount } from "@/components/AccountProvider";
-import { ChevronLeft, ChevronRight, FileIcon, MoreVertical, Pencil, Share, Trash } from "@/components/icons";
+import { ChevronLeft, ChevronRight, Download, MoreVertical, Pencil, Share, Trash } from "@/components/icons";
 import { ConfirmDialog } from "@/components/Modal";
 import { Popover } from "@/components/pickers";
 import { SadhanaCard } from "@/components/SadhanaCard";
 import { ShareDialog } from "@/components/ShareDialog";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StreakCard } from "@/components/StreakCard";
-import { InfoButton } from "@/components/ui";
+import { FormatOptions, InfoButton } from "@/components/ui";
 import { LockedError } from "@/lib/account";
 import { cardFileName, cardHref, cardProgress, mergeProfile } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
-import { buildCardPdf, downloadBlob } from "@/lib/export";
+import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
 import { repo } from "@/lib/storage";
 import { computeStreak } from "@/lib/streak";
 import type { WeekCard } from "@/lib/types";
@@ -100,18 +100,18 @@ export default function HomePage() {
   const existing = pickedWeek ? cards?.find((c) => c.weekStart === pickedWeek) : undefined;
 
   // ⋮ menu on a saved card
-  const [menu, setMenu] = useState<{ card: WeekCard; el: HTMLElement } | null>(null);
+  const [menu, setMenu] = useState<{ card: WeekCard; el: HTMLElement; step?: "share" | "download" } | null>(null);
   // PDF export: the card is rendered off-screen, then turned into a PDF.
-  const [exporting, setExporting] = useState<{ card: WeekCard; kind: "pdf" | "share" } | null>(null);
+  const [exporting, setExporting] = useState<{ card: WeekCard; kind: "download" | "share"; format: CardFormat } | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [share, setShare] = useState<{ file: File; text: string } | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  const startExport = async (card: WeekCard, kind: "pdf" | "share") => {
+  const startExport = async (card: WeekCard, kind: "download" | "share", format: CardFormat) => {
     setMenu(null);
     setExportError(null);
     const saved = await repo.getProfile().catch(() => null);
-    setExporting({ card: { ...card, profile: mergeProfile(card.profile, saved) }, kind });
+    setExporting({ card: { ...card, profile: mergeProfile(card.profile, saved) }, kind, format });
   };
 
   useEffect(() => {
@@ -122,19 +122,18 @@ export default function HomePage() {
         // Let the off-screen copy render first.
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         if (!exportRef.current) throw new Error("export node missing");
-        const blob = await buildCardPdf(exportRef.current);
+        const { card, kind, format } = exporting;
+        const file = await buildCardFile(exportRef.current, format, cardFileName(card));
         if (cancelled) return;
-        const { card, kind } = exporting;
-        const name = `${cardFileName(card)}.pdf`;
-        if (kind === "pdf") downloadBlob(blob, name);
+        if (kind === "download") downloadBlob(file, file.name);
         else
           setShare({
-            file: new File([blob], name, { type: "application/pdf" }),
+            file,
             text: `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`,
           });
       } catch (e) {
         console.error(e);
-        if (!cancelled) setExportError("Could not make the PDF. Please try again.");
+        if (!cancelled) setExportError("Could not prepare your card. Please try again.");
       } finally {
         if (!cancelled) setExporting(null);
       }
@@ -307,26 +306,45 @@ export default function HomePage() {
         anchor={menu?.el ?? null}
         open={!!menu}
         onClose={() => setMenu(null)}
-        title={menu ? formatWeekRange(menu.card.weekStart) : ""}
+        title={menu ? (menu.step === "share" ? "Send to mentor as…" : menu.step === "download" ? "Download as…" : formatWeekRange(menu.card.weekStart)) : ""}
       >
-        {menu && (
-          <div className="min-w-[240px] space-y-1">
-            <MenuItem icon={<Pencil className="h-[18px] w-[18px]" />} title="Open card" sub="View or edit this week" onClick={() => window.location.assign(cardHref(menu.card.weekStart))} />
-            <MenuItem icon={<Share className="h-[18px] w-[18px]" />} title="Send to mentor" sub="Share the PDF on WhatsApp or any app" onClick={() => void startExport(menu.card, "share")} />
-            <MenuItem icon={<FileIcon className="h-[18px] w-[18px]" />} title="Download PDF" sub="A4 page, ready to share or print" onClick={() => void startExport(menu.card, "pdf")} />
-            <MenuItem
-              danger
-              icon={<Trash className="h-[18px] w-[18px]" />}
-              title="Delete"
-              sub="Remove this card for good"
-              onClick={() => {
-                const c = menu.card;
-                setMenu(null);
-                setDeleteError(null);
-                setToDelete(c);
-              }}
-            />
-          </div>
+        {menu?.step ? (
+          <FormatOptions onPick={(f) => void startExport(menu.card, menu.step!, f)} />
+        ) : (
+          menu && (
+            <div className="min-w-[240px] space-y-1">
+              <MenuItem
+                icon={<Pencil className="h-[18px] w-[18px]" />}
+                title="Open card"
+                sub="View or edit this week"
+                onClick={() => window.location.assign(cardHref(menu.card.weekStart))}
+              />
+              <MenuItem
+                icon={<Share className="h-[18px] w-[18px]" />}
+                title="Send to mentor"
+                sub="As a PDF or image, on WhatsApp or any app"
+                onClick={() => setMenu({ ...menu, step: "share" })}
+              />
+              <MenuItem
+                icon={<Download className="h-[18px] w-[18px]" />}
+                title="Download"
+                sub="Save as a PDF or image"
+                onClick={() => setMenu({ ...menu, step: "download" })}
+              />
+              <MenuItem
+                danger
+                icon={<Trash className="h-[18px] w-[18px]" />}
+                title="Delete"
+                sub="Remove this card for good"
+                onClick={() => {
+                  const c = menu.card;
+                  setMenu(null);
+                  setDeleteError(null);
+                  setToDelete(c);
+                }}
+              />
+            </div>
+          )
         )}
       </Popover>
 

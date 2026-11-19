@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { EyeOff, FileIcon, ImageIcon, KeyIcon, Lock, Printer, Share, ShieldCheck, Smartphone, UserIcon } from "@/components/icons";
+import { EyeOff, FileIcon, ImageIcon, KeyIcon, Lock, ShieldCheck, Smartphone, UserIcon } from "@/components/icons";
 import { CloseFab, Popover } from "@/components/pickers";
 
 /** Small round "i" button that opens help text (popover on desktop, bottom sheet on phones). */
@@ -225,41 +225,26 @@ export function PrivacyNotice({ weekStart, weekLabel }: { weekStart: string; wee
 }
 
 /** Download menu: PDF / image / print. */
-type ExportKind = "pdf" | "png" | "print" | "share";
-
-export function DownloadMenu(props: {
+/** A button that first asks "PDF or Image?", then calls onPick with the choice. */
+export function FormatMenu(props: {
+  title: string;
   disabled?: boolean;
-  busy: boolean;
-  onPick: (kind: ExportKind) => void;
+  onPick: (format: "pdf" | "image") => void;
   className: string;
   children: ReactNode;
-  kinds?: ExportKind[];
-  title?: string;
-  ariaLabel?: string;
 }) {
-  const { disabled, busy, onPick, className, children, kinds = ["share", "pdf", "png", "print"], title = "Download or send", ariaLabel } = props;
+  const { title, disabled, onPick, className, children } = props;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const pick = (k: ExportKind) => {
+  const pick = (f: "pdf" | "image") => {
     setAnchor(null);
-    onPick(k);
+    onPick(f);
   };
-  const opt = (k: ExportKind, icon: ReactNode, label: string, sub: string) =>
-    kinds.includes(k) && (
-      <button type="button" onClick={() => pick(k)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-band active:bg-band">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">{icon}</span>
-        <span>
-          <span className="block font-semibold text-ink">{label}</span>
-          <span className="block text-xs text-ink/55">{sub}</span>
-        </span>
-      </button>
-    );
   return (
     <>
       <button
         type="button"
-        disabled={disabled || busy}
+        disabled={disabled}
         aria-haspopup="dialog"
-        aria-label={ariaLabel}
         onClick={(e) => {
           const el = e.currentTarget;
           setAnchor((a) => (a ? null : el));
@@ -269,13 +254,27 @@ export function DownloadMenu(props: {
         {children}
       </button>
       <Popover anchor={anchor} open={!!anchor} onClose={() => setAnchor(null)} title={title}>
-        <div className="space-y-1">
-          {opt("share", <Share />, "Send to mentor", "Share the PDF on WhatsApp or any app")}
-          {opt("pdf", <FileIcon />, "PDF", "A4 page, ready to share or print")}
-          {opt("png", <ImageIcon />, "Download as image", "PNG picture of the card")}
-          {opt("print", <Printer />, "Print", "Use your printer or save as PDF")}
-        </div>
+        <FormatOptions onPick={pick} />
       </Popover>
     </>
+  );
+}
+
+/** The two choices shown in a "PDF or Image?" sheet. */
+export function FormatOptions({ onPick }: { onPick: (format: "pdf" | "image") => void }) {
+  const opt = (f: "pdf" | "image", icon: ReactNode, label: string, sub: string) => (
+    <button type="button" onClick={() => onPick(f)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-band active:bg-band">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">{icon}</span>
+      <span>
+        <span className="block font-semibold text-ink">{label}</span>
+        <span className="block text-xs text-ink/55">{sub}</span>
+      </span>
+    </button>
+  );
+  return (
+    <div className="min-w-[240px] space-y-1">
+      {opt("pdf", <FileIcon />, "PDF", "A4 page, best for printing")}
+      {opt("image", <ImageIcon />, "Image", "A picture, easy to view on phone")}
+    </div>
   );
 }

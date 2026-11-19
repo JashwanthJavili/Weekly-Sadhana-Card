@@ -5,16 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Download, Home, Share } from "@/components/icons";
 import { SadhanaCard } from "@/components/SadhanaCard";
-import { InfoButton, PrivacyNotice } from "@/components/ui";
+import { FormatMenu, InfoButton, PrivacyNotice } from "@/components/ui";
 import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
-import { buildCardPdf, downloadCardPdf, downloadCardPng } from "@/lib/export";
+import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
 import { LockedError } from "@/lib/account";
 import { useAccount } from "@/components/AccountProvider";
 import { ShareDialog } from "@/components/ShareDialog";
 import { repo } from "@/lib/storage";
 import { useTyping } from "@/lib/useKeyboard";
-import type { Profile, WeekCard } from "@/lib/types";
+import type { WeekCard } from "@/lib/types";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -31,7 +31,7 @@ export default function CardEditor() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
+  const [busy, setBusy] = useState<null | "download" | "share">(null);
   const [share, setShare] = useState<File | null>(null);
   const [today, setToday] = useState<string>("");
 
@@ -156,16 +156,15 @@ export default function CardEditor() {
     window.history.pushState(null, "", cardHref(weekStartISO(d)));
   };
 
-  const download = async (kind: "pdf" | "png") => {
+  const download = async (format: CardFormat) => {
     if (!card || !exportRef.current) return;
-    setBusy(kind);
+    setBusy("download");
     setError(null);
     try {
       // Save in the background — the download must not wait for the network.
       if (dirtyRef.current || !persistedRef.current) void persist(card);
-      const name = cardFileName(card);
-      if (kind === "pdf") await downloadCardPdf(exportRef.current, `${name}.pdf`);
-      else await downloadCardPng(exportRef.current, `${name}.png`);
+      const file = await buildCardFile(exportRef.current, format, cardFileName(card));
+      downloadBlob(file, file.name);
     } catch (e) {
       console.error(e);
       setError("Download failed. Please try again.");
@@ -178,18 +177,17 @@ export default function CardEditor() {
     ? `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`
     : "";
 
-  /** Step 1 of "Send to mentor": make the PDF (phones need a fresh tap to share, see step 2). */
-  const prepareShare = async () => {
+  /** Step 1 of "Send to mentor": make the file (phones need a fresh tap to share, see step 2). */
+  const prepareShare = async (format: CardFormat) => {
     if (!card || !exportRef.current) return;
     setBusy("share");
     setError(null);
     try {
       if (dirtyRef.current || !persistedRef.current) void persist(card);
-      const blob = await buildCardPdf(exportRef.current);
-      setShare(new File([blob], `${cardFileName(card)}.pdf`, { type: "application/pdf" }));
+      setShare(await buildCardFile(exportRef.current, format, cardFileName(card)));
     } catch (e) {
       console.error(e);
-      setError("Could not prepare the PDF. Please try again.");
+      setError("Could not prepare your card. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -209,11 +207,6 @@ export default function CardEditor() {
 
   const progress = card ? cardProgress(card) : null;
 
-  const onDownload = (kind: "pdf" | "png" | "print" | "share") => {
-    if (kind === "print") window.print();
-    else if (kind === "share") void prepareShare();
-    else void download(kind);
-  };
 
   const weekNav = (
     <div className="flex min-w-0 items-center">
@@ -259,12 +252,12 @@ export default function CardEditor() {
           <SaveIndicator state={saveState} savedAt={savedAt} />
 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <button className="btn-outline" onClick={() => onDownload("share")} disabled={!card || !!busy}>
+            <FormatMenu title="Send to mentor as…" onPick={(f) => void prepareShare(f)} disabled={!card || !!busy} className="btn-outline">
               <Share className="h-4 w-4" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
-            </button>
-            <button className="btn-solid" onClick={() => onDownload("pdf")} disabled={!card || !!busy}>
-              <Download className="h-4 w-4" /> {busy === "pdf" ? "Preparing…" : "Download PDF"}
-            </button>
+            </FormatMenu>
+            <FormatMenu title="Download as…" onPick={(f) => void download(f)} disabled={!card || !!busy} className="btn-solid">
+              <Download className="h-4 w-4" /> {busy === "download" ? "Preparing…" : "Download"}
+            </FormatMenu>
           </div>
           <InfoButton />
         </div>
@@ -312,20 +305,22 @@ export default function CardEditor() {
         }`}
       >
         <div className="mx-auto flex max-w-md items-center gap-2">
-          <button
+          <FormatMenu
+            title="Download as…"
+            onPick={(f) => void download(f)}
+            disabled={!card || !!busy}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-brand/30 bg-white font-semibold text-brand disabled:opacity-50"
-            onClick={() => onDownload("pdf")}
-            disabled={!card || !!busy}
           >
-            <Download className="h-5 w-5" /> {busy === "pdf" ? "Preparing…" : "Download"}
-          </button>
-          <button
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
-            onClick={() => onDownload("share")}
+            <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
+          </FormatMenu>
+          <FormatMenu
+            title="Send to mentor as…"
+            onPick={(f) => void prepareShare(f)}
             disabled={!card || !!busy}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
           >
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
-          </button>
+          </FormatMenu>
         </div>
       </div>
 

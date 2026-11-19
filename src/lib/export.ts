@@ -43,7 +43,7 @@ function imageSize(dataUrl: string): Promise<{ w: number; h: number }> {
 }
 
 /** JPEG render used inside the PDF: a fraction of the size of a PNG at the same sharpness. */
-async function renderCardJpeg(node: HTMLElement): Promise<string> {
+export async function renderCardJpeg(node: HTMLElement): Promise<string> {
   const { toJpeg } = await import("html-to-image");
   await waitForImages(node);
   const opts = { pixelRatio: 2, quality: 0.85, backgroundColor: PAPER, cacheBust: true };
@@ -68,6 +68,15 @@ export async function buildCardPdf(node: HTMLElement): Promise<Blob> {
   pdf.rect(0, 0, pageW, pageH, "F");
   pdf.addImage(dataUrl, "JPEG", (pageW - dw) / 2, (pageH - dh) / 2, dw, dh, undefined, "FAST");
   return pdf.output("blob");
+}
+
+export type CardFormat = "pdf" | "image";
+
+/** The card as a ready-to-send file: a one-page PDF, or a JPEG picture (small, opens anywhere). */
+export async function buildCardFile(node: HTMLElement, format: CardFormat, baseName: string): Promise<File> {
+  if (format === "pdf") return new File([await buildCardPdf(node)], `${baseName}.pdf`, { type: "application/pdf" });
+  const blob = await (await fetch(await renderCardJpeg(node))).blob();
+  return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
 }
 
 export async function downloadCardPdf(node: HTMLElement, filename: string) {

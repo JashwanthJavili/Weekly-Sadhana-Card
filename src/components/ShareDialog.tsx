@@ -14,6 +14,7 @@ export function ShareDialog({ file, text, onClose }: { file: File | null; text: 
   const id = useId();
   const [note, setNote] = useState<string | null>(null);
   const supported = !!file && canSharePdf(file);
+  const isImage = !!file?.type.startsWith("image/");
 
   const close = () => {
     setNote(null);
@@ -24,7 +25,7 @@ export function ShareDialog({ file, text, onClose }: { file: File | null; text: 
     if (!file) return;
     downloadBlob(file, file.name);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-    setNote("The PDF was downloaded. In WhatsApp, choose your mentor and attach the PDF.");
+    setNote(`The ${isImage ? "image" : "PDF"} was downloaded. In WhatsApp, choose your mentor and attach it.`);
   };
 
   const doShare = async () => {
@@ -44,7 +45,7 @@ export function ShareDialog({ file, text, onClose }: { file: File | null; text: 
           Send to your mentor
         </h2>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
-          {supported ? "Your card is ready. Tap Send and choose WhatsApp (or any app), then pick your mentor." : "Your card is ready as a PDF."}
+          {supported ? "Your card is ready. Tap Send and choose WhatsApp (or any app), then pick your mentor." : `Your card is ready as ${isImage ? "an image" : "a PDF"}.`}
         </p>
       </div>
 
@@ -55,7 +56,7 @@ export function ShareDialog({ file, text, onClose }: { file: File | null; text: 
           </span>
           <span className="min-w-0 text-left">
             <span className="block truncate text-[14px] font-semibold text-ink">{file.name}</span>
-            <span className="block text-[12px] text-ink/55">PDF · {Math.max(1, Math.round(file.size / 1024))} KB</span>
+            <span className="block text-[12px] text-ink/55">{isImage ? "Image" : "PDF"} · {Math.max(1, Math.round(file.size / 1024))} KB</span>
           </span>
         </div>
       )}
