@@ -7,7 +7,7 @@ import { Check, ChevronLeft, ChevronRight, Download, Home, Lock, Share } from "@
 import { SadhanaCard } from "@/components/SadhanaCard";
 import { WeekReport } from "@/components/WeekReport";
 import { InfoButton, PrivacyNotice } from "@/components/ui";
-import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName } from "@/lib/card";
+import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName, shareMessage } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
 import { buildCardImage, downloadBlob, shareFile } from "@/lib/export";
 import { LockedError } from "@/lib/account";
@@ -186,7 +186,7 @@ export default function CardEditor() {
   };
 
   const shareText = card
-    ? `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`
+    ? shareMessage(card)
     : "";
 
   /** Step 1 of "Send to mentor": make the file (phones need a fresh tap to share, see step 2). */

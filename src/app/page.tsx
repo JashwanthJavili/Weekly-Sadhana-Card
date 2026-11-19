@@ -14,7 +14,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { StreakCard } from "@/components/StreakCard";
 import { InfoButton } from "@/components/ui";
 import { LockedError } from "@/lib/account";
-import { cardFileName, cardHref, cardProgress, mergeProfile } from "@/lib/card";
+import { cardFileName, cardHref, cardProgress, mergeProfile, shareMessage } from "@/lib/card";
 import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from "@/lib/dates";
 import { buildCardImage, downloadBlob, shareFile } from "@/lib/export";
 import { repo } from "@/lib/storage";
@@ -128,7 +128,7 @@ export default function HomePage() {
         if (cancelled) return;
         if (kind === "download") downloadBlob(file, file.name);
         else {
-          const text = `Hare Krishna! Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}${card.profile.name ? ` — ${card.profile.name}` : ""}.`;
+          const text = shareMessage(card);
           // Straight to the share menu with the image attached; the "Send" screen is only a fallback.
           const r = await shareFile(file, text);
           if (!cancelled && (r === "needs-tap" || r === "unsupported")) setShare({ file, text });

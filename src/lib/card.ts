@@ -1,3 +1,4 @@
+import { formatWeekRange } from "./dates";
 import { DAY_KEYS, type DayEntry, type DayKey, type Profile, type WeekCard } from "./types";
 
 /**
@@ -155,4 +156,16 @@ export function cardFileName(card: WeekCard): string {
       .trim()
       .slice(0, 40) || "SadhanaCard";
   return `${name}_${MONTHS[thu.getMonth()]}_Week${week}`;
+}
+
+/** The message sent along with the card to the mentor. */
+export function shareMessage(card: WeekCard): string {
+  const name = card.profile.name.trim();
+  return [
+    "Hare Krishna Prabhuji",
+    "Dandavat Pranams Prabhuji",
+    "",
+    `Here is my Sadhana Card for ${formatWeekRange(card.weekStart)}.`,
+    ...(name ? ["", `Your servant,`, name] : []),
+  ].join("\n");
 }
