@@ -19,6 +19,7 @@ import { formatWeekRange, parseISODate, shiftWeek, todayISO, weekStartISO } from
 import { buildCardFile, downloadBlob, type CardFormat } from "@/lib/export";
 import { repo } from "@/lib/storage";
 import { computeStreak } from "@/lib/streak";
+import { opensAt } from "@/lib/useUnlock";
 import type { WeekCard } from "@/lib/types";
 
 /** "This week", "Last week", "In 2 weeks", … */
@@ -142,6 +143,13 @@ export default function HomePage() {
       cancelled = true;
     };
   }, [exporting]);
+
+  // Download / send open on the Monday after the week ends.
+  const menuOpensAt = menu ? opensAt(menu.card.weekStart) : null;
+  const menuLock =
+    menuOpensAt && Date.now() < menuOpensAt.getTime()
+      ? `Opens ${menuOpensAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}, after the week ends`
+      : null;
 
   const confirmDelete = async () => {
     if (!toDelete) return;
@@ -322,13 +330,15 @@ export default function HomePage() {
               <MenuItem
                 icon={<Share className="h-[18px] w-[18px]" />}
                 title="Send to mentor"
-                sub="As a PDF or image, on WhatsApp or any app"
+                sub={menuLock ?? "As an image or PDF, on WhatsApp"}
+                disabled={!!menuLock}
                 onClick={() => setMenu({ ...menu, step: "share" })}
               />
               <MenuItem
                 icon={<Download className="h-[18px] w-[18px]" />}
                 title="Download"
-                sub="Save as a PDF or image"
+                sub={menuLock ?? "Save as an image or PDF"}
+                disabled={!!menuLock}
                 onClick={() => setMenu({ ...menu, step: "download" })}
               />
               <MenuItem
@@ -377,13 +387,14 @@ export default function HomePage() {
   );
 }
 
-function MenuItem(props: { icon: ReactNode; title: string; sub: string; onClick: () => void; danger?: boolean }) {
-  const { icon, title, sub, onClick, danger } = props;
+function MenuItem(props: { icon: ReactNode; title: string; sub: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
+  const { icon, title, sub, onClick, danger, disabled } = props;
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${danger ? "hover:bg-rose-50 active:bg-rose-50" : "hover:bg-band active:bg-band"}`}
+      disabled={disabled}
+      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50 ${danger ? "hover:bg-rose-50 active:bg-rose-50" : "hover:bg-band active:bg-band"}`}
     >
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${danger ? "bg-rose-50 text-rose-600" : "bg-brand/10 text-brand"}`}>{icon}</span>
       <span className="min-w-0">

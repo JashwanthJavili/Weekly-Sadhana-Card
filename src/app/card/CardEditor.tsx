@@ -3,7 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Download, Home, Share } from "@/components/icons";
+import { Check, ChevronLeft, ChevronRight, Download, Home, Lock, Share } from "@/components/icons";
 import { SadhanaCard } from "@/components/SadhanaCard";
 import { FormatMenu, InfoButton, PrivacyNotice } from "@/components/ui";
 import { blankCard, cardHref, cardProgress, isCardEmpty, mergeProfile, cardFileName } from "@/lib/card";
@@ -14,6 +14,7 @@ import { useAccount } from "@/components/AccountProvider";
 import { ShareDialog } from "@/components/ShareDialog";
 import { repo } from "@/lib/storage";
 import { useTyping } from "@/lib/useKeyboard";
+import { useUnlock } from "@/lib/useUnlock";
 import type { WeekCard } from "@/lib/types";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -61,6 +62,7 @@ export default function CardEditor() {
   const [reload, setReload] = useState(0);
   const acc = useAccount();
   const typing = useTyping(); // hide the bottom bar while the keyboard is up
+  const unlock = useUnlock(weekStart); // download / send open on the Monday after the week
   const accountReady = acc.phase === "ready" || acc.phase === "needs-setup";
   useEffect(() => {
     if (!weekStart || weekStart !== week) return;
@@ -262,10 +264,15 @@ export default function CardEditor() {
           <SaveIndicator state={saveState} savedAt={savedAt} />
 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <FormatMenu title="Send to mentor as…" onPick={(f) => void prepareShare(f)} disabled={!card || !!busy} className="btn-outline">
+            {!unlock.open && unlock.left && (
+              <span className="flex items-center gap-1 text-[12px] text-ink/60" title={`Download and Send open on ${unlock.day}`}>
+                <Lock className="h-3.5 w-3.5" /> Opens {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
+              </span>
+            )}
+            <FormatMenu title="Send to mentor as…" onPick={(f) => void prepareShare(f)} disabled={!card || !!busy || !unlock.open} className="btn-outline">
               <Share className="h-4 w-4" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
             </FormatMenu>
-            <FormatMenu title="Download as…" onPick={(f) => void download(f)} disabled={!card || !!busy} className="btn-solid">
+            <FormatMenu title="Download as…" onPick={(f) => void download(f)} disabled={!card || !!busy || !unlock.open} className="btn-solid">
               <Download className="h-4 w-4" /> {busy === "download" ? "Preparing…" : "Download"}
             </FormatMenu>
           </div>
@@ -286,7 +293,7 @@ export default function CardEditor() {
       )}
 
       {/* ───────── Card ───────── */}
-      <div className="screen-only mt-3 flex-1 px-3 pb-28 lg:mt-5 lg:px-4 lg:pb-10">
+      <div className="screen-only mt-3 flex-1 px-3 pb-36 lg:mt-5 lg:px-4 lg:pb-10">
         <div className="mx-auto max-w-[860px]">
           {loadError ? (
             <div className="w-full rounded-2xl border border-rose-200 bg-white p-6 text-center">
@@ -318,7 +325,7 @@ export default function CardEditor() {
           <FormatMenu
             title="Download as…"
             onPick={(f) => void download(f)}
-            disabled={!card || !!busy}
+            disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-brand/30 bg-white px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-brand disabled:opacity-50"
           >
             <Download className="h-5 w-5" /> {busy === "download" ? "Preparing…" : "Download"}
@@ -326,12 +333,20 @@ export default function CardEditor() {
           <FormatMenu
             title="Send to mentor as…"
             onPick={(f) => void prepareShare(f)}
-            disabled={!card || !!busy}
+            disabled={!card || !!busy || !unlock.open}
             className="flex h-12 min-w-0 flex-[1.25] items-center justify-center gap-1.5 rounded-2xl bg-brand px-2 text-[clamp(13px,4.2vw,16px)] font-semibold whitespace-nowrap text-white shadow-sm disabled:opacity-50"
           >
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
           </FormatMenu>
         </div>
+        {!unlock.open && unlock.left && (
+          <p className="mx-auto mt-1.5 flex max-w-md items-center justify-center gap-1 text-[12px] text-ink/60" aria-live="off">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              Download &amp; Send open {unlock.day} · in <b className="font-semibold text-ink tabular-nums">{unlock.left}</b>
+            </span>
+          </p>
+        )}
       </div>
 
       {card && <PrivacyNotice weekStart={card.weekStart} weekLabel={formatWeekRange(card.weekStart)} />}
