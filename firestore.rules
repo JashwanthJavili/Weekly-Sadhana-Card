@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Sadhana Card data (contents are end-to-end encrypted in the browser):
+//   SadhanaCard/{uid}                    → { uid, updatedAt, profile?: sealed, keyWrap?: wrapped key }
+//   SadhanaCard/{uid}/weeks/{weekStart}  → { uid, weekStart, updatedAt, v, iv, ct }
+// Each signed-in user (anonymous or Google) can only read and write their own documents,
+// and only small, encrypted payloads in the expected shape are accepted.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isSealed(d, maxCt) {
+      return d.v == 1
+        && d.iv is string && d.iv.size() <= 32
+        && d.ct is string && d.ct.size() <= maxCt;
+    }
+
+    function isKeyWrap(w) {
+      return w is map
+        && w.keys().hasOnly(['v', 'salt', 'iter', 'iv', 'ct'])
+        && w.v == 1
+        && w.salt is string && w.salt.size() <= 64
+        && w.iter is int && w.iter >= 100000
+        && w.iv is string && w.iv.size() <= 32
+        && w.ct is string && w.ct.size() <= 128;
+    }
+
+    match /SadhanaCard/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.updatedAt is string
+        && request.resource.data.keys().hasOnly(['uid', 'updatedAt', 'profile', 'keyWrap', 'v', 'iv', 'ct'])
+        && (!('profile' in request.resource.data)
+            || (request.resource.data.profile is map
+                && request.resource.data.profile.keys().hasOnly(['v', 'iv', 'ct'])
+                && isSealed(request.resource.data.profile, 20000)))
+        && (!('keyWrap' in request.resource.data) || isKeyWrap(request.resource.data.keyWrap));
+
+      match /weeks/{weekStart} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && weekStart.matches('^20[2-9][0-9]-[0-1][0-9]-[0-3][0-9]$')
+          && request.resource.data.uid == uid
+          && request.resource.data.weekStart == weekStart
+          && request.resource.data.updatedAt is string
+          && isSealed(request.resource.data, 400000)
+          && request.resource.data.keys().hasOnly(['uid', 'weekStart', 'updatedAt', 'v', 'iv', 'ct']);
+      }
+    }
+  }
+}

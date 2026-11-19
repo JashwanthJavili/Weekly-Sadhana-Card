@@ -1,26 +1,232 @@
 @import "tailwindcss";
 
+/* Colours sampled from the printed Youth Sadhana Card */
+@theme {
+  --color-brand: #008080;
+  --color-brand-dark: #006666;
+  --color-ink: #434343;
+  --color-paper: #fffdf4;
+  --color-band: #f1f5f1;
+  --color-cell-shaded: #f4f9f8;
+  --color-line: #d3dbd7;
+  --color-desk: #eef3f1;
+
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-sans: "Poppins", system-ui, sans-serif;
+}
+
+/* The card is a paper form, so it always renders light. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-desk);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+@layer components {
+  .btn-solid,
+  .btn-outline,
+  .btn-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-solid {
+    @apply bg-brand text-white hover:bg-brand-dark;
+  }
+  .btn-outline {
+    @apply border border-brand/40 bg-white text-brand hover:bg-band;
+  }
+  .btn-ghost {
+    @apply text-ink/80 hover:bg-band;
+  }
+}
+
+/* Label column + 7 days */
+.card-grid {
+  display: grid;
+  grid-template-columns: 130px repeat(7, minmax(0, 1fr));
+  column-gap: 8px;
+}
+
+.cell:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 25%, transparent);
+}
+
+.cell-input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  text-align: center;
+  outline: none;
+  padding: 0 4px;
+  color: var(--color-ink);
+}
+.cell-input::placeholder {
+  color: color-mix(in srgb, var(--color-ink) 30%, transparent);
+  font-weight: 400;
+  font-size: 11px;
+}
+input[type="time"].cell-input {
+  padding: 0 2px;
+  font-size: 12.5px;
+}
+input[type="time"].cell-input::-webkit-calendar-picker-indicator {
+  margin: 0;
+  padding: 0;
+  width: 11px;
+  opacity: 0.45;
+  cursor: pointer;
+}
+input[type="time"].cell-input:invalid,
+input[type="time"].cell-input:not(:focus)[value=""] {
+  color: color-mix(in srgb, var(--color-ink) 35%, transparent);
+}
+
+/* Ruled lines for the reflection answers */
+.lined {
+  font-size: 15px;
+  line-height: 34px;
+  min-height: 68px;
+  padding: 0 4px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 33px,
+    #9c9c9c 33px,
+    #9c9c9c 34px
+  );
+  background-attachment: local;
+}
+
+/* Scroll wheels */
+.wheel {
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32%, #000 68%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 32%, #000 68%, transparent 100%);
+  -webkit-overflow-scrolling: touch;
+}
+.wheel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom sheet motion */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sheet-panel {
+  animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sheet-backdrop {
+  animation: fade-in 0.2s ease-out;
+}
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(105%);
+  }
+}
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.sheet-panel-out {
+  animation: sheet-down 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.sheet-backdrop-out {
+  animation: fade-out 0.2s ease-in forwards;
+}
+
+/* Text boxes: when the keyboard opens, scroll them clear of the sticky bars instead of under them. */
+input,
+textarea {
+  scroll-margin-top: 9rem;
+  scroll-margin-bottom: 2rem;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.modal-backdrop {
+  animation: fade-in 0.2s ease-out;
+}
+.modal-panel {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 640px) {
+  .modal-panel {
+    animation: pop-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-panel,
+  .modal-backdrop,
+  .sheet-panel,
+  .sheet-backdrop,
+  .sheet-panel-out,
+  .sheet-backdrop-out {
+    animation: none;
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Off-screen copy of the card used for PNG/PDF export and printing */
+.export-host {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  body {
+    background: #fff;
+  }
+  .screen-only {
+    display: none !important;
+  }
+  .export-host {
+    position: static;
+    left: 0;
+  }
+  .export-host .sadhana-card {
+    zoom: 0.92;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
