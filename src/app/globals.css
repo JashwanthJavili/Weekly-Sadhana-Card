@@ -198,7 +198,29 @@ textarea {
     animation: pop-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
+/* Loading placeholders: shaped like the real content, with a soft light sweep */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e8eeeb 0%, #e8eeeb 35%, #f6f9f7 50%, #e8eeeb 65%, #e8eeeb 100%);
+  background-size: 250% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+/* Content that replaces a placeholder fades in instead of jumping */
+.load-in {
+  animation: fade-in 0.3s ease-out;
+}
 @media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .load-in,
   .page-in,
   .modal-panel,
   .modal-backdrop,

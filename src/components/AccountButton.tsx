@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAccount } from "@/components/AccountProvider";
 import { ChevronRight, Cloud, GoogleG, LogOut } from "@/components/icons";
 import { Popover } from "@/components/pickers";
+import { AccountSkeleton } from "@/components/Skeletons";
 import { cancelGoogleSignIn, signInWithGoogle, signOut } from "@/lib/account";
 
 function Avatar({ name, photoURL, size = "h-9 w-9" }: { name: string; photoURL: string; size?: string }) {
@@ -67,7 +68,7 @@ export function AccountRow() {
     else setError(r.error);
   };
 
-  if (!user) return <div className="h-[54px] shrink-0 animate-pulse rounded-2xl bg-white/70" />;
+  if (!user) return <AccountSkeleton />;
 
   if (!google) {
     return (

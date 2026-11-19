@@ -11,6 +11,7 @@ import { Popover } from "@/components/pickers";
 import { WeekReport } from "@/components/WeekReport";
 import { ShareDialog } from "@/components/ShareDialog";
 import { SiteFooter } from "@/components/SiteFooter";
+import { CardListSkeleton, StreakSkeleton } from "@/components/Skeletons";
 import { StreakCard } from "@/components/StreakCard";
 import { InfoButton } from "@/components/ui";
 import { LockedError } from "@/lib/account";
@@ -97,6 +98,16 @@ export default function HomePage() {
 
   const streak = useMemo(() => (cards ? computeStreak(cards) : null), [cards]);
 
+  // On a slow connection, say so gently instead of leaving the placeholders on their own.
+  const loading = cards === null && !loadError;
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    setSlow(false);
+    if (!loading) return;
+    const t = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   const pickedDate = parseISODate(picked);
   const pickedWeek = pickedDate ? weekStartISO(pickedDate) : null;
   const existing = pickedWeek ? cards?.find((c) => c.weekStart === pickedWeek) : undefined;
@@ -182,7 +193,13 @@ export default function HomePage() {
         <AccountRow />
 
         {/* Streak */}
-        {streak ? <StreakCard info={streak} /> : !loadError && <div className="h-[62px] shrink-0 animate-pulse rounded-2xl bg-white/70" />}
+        {streak ? (
+          <div className="load-in shrink-0">
+            <StreakCard info={streak} />
+          </div>
+        ) : (
+          !loadError && <StreakSkeleton />
+        )}
 
         {/* Choose a week */}
         <section className="shrink-0 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-black/5 min-[380px]:p-3">
@@ -233,7 +250,14 @@ export default function HomePage() {
         <section className="flex min-h-0 flex-1 flex-col">
           <div className="mb-1.5 flex items-baseline justify-between px-1 pt-0.5">
             <h2 className="font-serif text-[17px] font-bold text-ink">My cards</h2>
-            {cards && cards.length > 0 && <span className="text-xs text-ink/50">{cards.length} saved</span>}
+            {loading ? (
+              <span className="flex items-center gap-1.5 text-xs text-ink/50">
+                <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-brand/25 border-t-brand" aria-hidden />
+                Loading…
+              </span>
+            ) : (
+              cards && cards.length > 0 && <span className="text-xs text-ink/50">{cards.length} saved</span>
+            )}
           </div>
 
           {exportError && (
@@ -250,17 +274,21 @@ export default function HomePage() {
                 </button>
               </div>
             ) : cards === null ? (
-              <div className="space-y-2">
-                <div className="h-[60px] animate-pulse rounded-2xl bg-white/70" />
-                <div className="h-[60px] animate-pulse rounded-2xl bg-white/50" />
-              </div>
+              <>
+                <CardListSkeleton />
+                {slow && (
+                  <p className="load-in mt-3 px-2 text-center text-[12.5px] leading-snug text-ink/55">
+                    This is taking a little longer than usual. Please keep this page open; your cards will appear shortly.
+                  </p>
+                )}
+              </>
             ) : cards.length === 0 ? (
-              <div className="flex h-full min-h-[110px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-white/50 p-6 text-center text-sm text-ink/60">
+              <div className="load-in flex h-full min-h-[110px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line bg-white/50 p-6 text-center text-sm text-ink/60">
                 No cards yet.
                 <span className="text-ink/45">Choose a date above to start your first week.</span>
               </div>
             ) : (
-              <ul className="space-y-2">
+              <ul className="load-in space-y-2">
                 {cards.map((c) => {
                   const { filled, total } = cardProgress(c);
                   const done = filled === total;
