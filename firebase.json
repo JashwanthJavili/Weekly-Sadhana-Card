@@ -5,8 +5,16 @@
     "cleanUrls": true,
     "trailingSlash": false,
     "redirects": [
-      { "source": "/card.txt", "destination": "/card", "type": 302 },
-      { "source": "/index.txt", "destination": "/", "type": 302 }
+      {
+        "source": "/card.txt",
+        "destination": "/card",
+        "type": 302
+      },
+      {
+        "source": "/index.txt",
+        "destination": "/",
+        "type": 302
+      }
     ],
     "ignore": [
       "firebase.json",
@@ -14,6 +22,15 @@
       "**/node_modules/**"
     ],
     "headers": [
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
       {
         "source": "/",
         "headers": [

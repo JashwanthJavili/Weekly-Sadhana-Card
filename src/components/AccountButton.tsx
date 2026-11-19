@@ -126,7 +126,7 @@ export function AccountRow() {
           </div>
 
           <div className="mt-4 rounded-2xl bg-band p-3 text-[13px] leading-snug text-ink/70">
-            Your cards are saved in this Google account, and only you can read them.
+            Your cards are saved securely in this Google account.
             {acc.phase === "ready" ? (
               <span className="mt-1 block font-medium text-emerald-700">Protected with your card password. You can open them on any device.</span>
             ) : (

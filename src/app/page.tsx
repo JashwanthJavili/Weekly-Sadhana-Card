@@ -150,7 +150,7 @@ export default function HomePage() {
   const menuOpensAt = menu ? opensAt(menu.card.weekStart) : null;
   const menuLock =
     menuOpensAt && Date.now() < menuOpensAt.getTime()
-      ? `You can send this from ${menuOpensAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}, after the week ends`
+      ? `Ready to send on ${menuOpensAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}, after the week is complete`
       : null;
 
   const confirmDelete = async () => {

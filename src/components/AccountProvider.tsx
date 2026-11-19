@@ -164,14 +164,14 @@ function SetupDialog({ onLater }: { onLater: () => void }) {
           Create your card password
         </h2>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink/65">
-          With this password, you can open your cards on any phone or computer after signing in. Only you will know it.
+          This password lets you open your cards on any phone or computer after signing in.
         </p>
       </div>
       <div className="mt-5">
         <NewPassphraseFields p1={p1} p2={p2} setP1={setP1} setP2={setP2} onEnter={submit} />
       </div>
       <div className="mt-4 rounded-xl bg-amber-50 p-3 text-[12.5px] leading-snug text-amber-900 ring-1 ring-amber-200">
-        <b>Write it down.</b> Nobody can reset it for you, not even the people who run this app. Without it, your cards can&apos;t be opened on a new phone.
+        <b>Write it down.</b> It cannot be reset or recovered. Without it, your cards cannot be opened on a new device.
       </div>
       {error && <p className="mt-3 text-center text-sm text-rose-600">{error}</p>}
       <button

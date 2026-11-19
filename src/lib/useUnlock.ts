@@ -11,23 +11,24 @@ export function opensAt(weekStart: string): Date | null {
 
 const fmtDay = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
-/** "3d 4h", "5h 12m", "12m 05s". */
+/** "3 days 4 hours", "5 hours 12 minutes", "12 minutes". */
 function countdown(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
   const d = Math.floor(s / 86400);
   const h = Math.floor((s % 86400) / 3600);
   const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m ${String(sec).padStart(2, "0")}s`;
-  return `${m}m ${String(sec).padStart(2, "0")}s`;
+  const unit = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  if (d > 0) return h > 0 ? `${unit(d, "day")} ${unit(h, "hour")}` : unit(d, "day");
+  if (h > 0) return m > 0 ? `${unit(h, "hour")} ${unit(m, "minute")}` : unit(h, "hour");
+  if (m > 0) return unit(m, "minute");
+  return "less than a minute";
 }
 
 export interface Unlock {
   open: boolean;
   /** e.g. "Mon, 23 Nov" */
   day: string;
-  /** e.g. "3d 4h 12m" (empty once open) */
+  /** e.g. "3 days 4 hours" (empty once open) */
   left: string;
 }
 

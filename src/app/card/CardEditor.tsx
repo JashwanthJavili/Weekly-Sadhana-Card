@@ -15,6 +15,7 @@ import { useAccount } from "@/components/AccountProvider";
 import { ShareDialog } from "@/components/ShareDialog";
 import { repo } from "@/lib/storage";
 import { useTyping } from "@/lib/useKeyboard";
+import { setUpdateBlocked } from "@/components/UpdateGuard";
 import { useUnlock } from "@/lib/useUnlock";
 import type { WeekCard } from "@/lib/types";
 
@@ -104,6 +105,12 @@ export default function CardEditor() {
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
   }, []);
+
+  // An app update waits while there are changes still being saved.
+  useEffect(() => {
+    setUpdateBlocked(saveState === "dirty" || saveState === "saving");
+    return () => setUpdateBlocked(false);
+  }, [saveState]);
 
   const persist = useCallback(async (override?: WeekCard) => {
     const current = override ?? cardRef.current;
@@ -258,7 +265,7 @@ export default function CardEditor() {
     <main className="page-in flex min-h-dvh flex-col">
       {/* ───────── Top bar ───────── */}
       <div className="sticky top-0 z-20 border-b border-black/[0.06] bg-white">
-        <div className="mx-auto flex h-14 max-w-[900px] items-center gap-0.5 px-1.5 sm:gap-1 sm:px-2 lg:px-4">
+        <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-0.5 px-1.5 sm:gap-1 sm:px-2 lg:px-4">
           <a
             href="/"
             onClick={(e) => {
@@ -267,7 +274,7 @@ export default function CardEditor() {
               e.preventDefault();
               void Promise.race([persist(), new Promise((r) => setTimeout(r, 2000))]).finally(() => window.location.assign("/"));
             }}
-            className="flex h-9 items-center gap-1 rounded-full px-2 text-sm font-semibold text-ink/80 hover:bg-band"
+            className="flex h-9 shrink-0 items-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink/80 hover:bg-band"
             aria-label="All my cards"
           >
             <Home className="h-5 w-5" />
@@ -336,6 +343,7 @@ export default function CardEditor() {
           typing ? "pointer-events-none translate-y-full" : ""
         }`}
       >
+        {!unlock.open && unlock.left && weekStart && <UnlockNote weekStart={weekStart} day={unlock.day} left={unlock.left} layout="bar" />}
         <div className="mx-auto flex max-w-md items-center gap-2">
           <button type="button" onClick={() => void download()}
             disabled={!card || !!busy || !unlock.open}
@@ -350,7 +358,6 @@ export default function CardEditor() {
             <Share className="h-5 w-5" /> {busy === "share" ? "Preparing…" : "Send to mentor"}
           </button>
         </div>
-        {!unlock.open && unlock.left && weekStart && <UnlockNote weekStart={weekStart} day={unlock.day} left={unlock.left} layout="bar" />}
       </div>
 
       {card && <PrivacyNotice weekStart={card.weekStart} weekLabel={formatWeekRange(card.weekStart)} />}
@@ -395,7 +402,7 @@ function SaveIndicator({ state, savedAt }: { state: SaveState; savedAt: string |
       ) : (
         <span className="h-2 w-2 rounded-full bg-ink/20" />
       )}
-      <span className={`hidden text-xs lg:inline ${state === "error" ? "text-rose-600" : "text-ink/55"}`}>{label}</span>
+      <span className={`hidden text-xs whitespace-nowrap xl:inline ${state === "error" ? "text-rose-600" : "text-ink/55"}`}>{label}</span>
     </span>
   );
 }

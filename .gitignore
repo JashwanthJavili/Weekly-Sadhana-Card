@@ -48,3 +48,6 @@ firestore-debug.log*
 
 # local test artifacts
 .playwright-mcp/
+
+# written at build time
+/public/version.json
