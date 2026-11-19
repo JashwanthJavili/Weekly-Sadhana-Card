@@ -77,11 +77,11 @@ const PaperCard = forwardRef<
       <header className="bg-brand px-6 pt-5 pb-5 text-white">
         <h1 className="text-center font-serif text-[64px] leading-none font-bold tracking-tight">Sadhana Card</h1>
         <img src="/icons/flourish.png" alt="" className="mx-auto mt-2 h-[20px] w-[376px]" />
-        <div className="mt-4 flex items-end gap-5 font-sans text-[12.5px]">
-          <HeaderField label="Name" value={card.profile.name} className="flex-1" locked={locked} onChange={(v) => actions.setProfile("name", v)} />
-          <HeaderField label="Age" value={card.profile.age} inputClass="w-12" locked={locked} inputMode="numeric" maxLength={3} onChange={(v) => actions.setProfile("age", v)} />
-          <HeaderField label="Mentor/Siksha Guru" value={card.profile.mentor} className="flex-1" locked={locked} onChange={(v) => actions.setProfile("mentor", v)} />
-          <HeaderField label="Phone Number" value={card.profile.phone} inputClass="w-32" locked={locked} inputMode="tel" maxLength={16} onChange={(v) => actions.setProfile("phone", v)} />
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-x-8 gap-y-2.5 font-sans text-[12.5px]">
+          <HeaderField label="Name" value={card.profile.name} className="flex-1" text={mode === "export"} locked={locked} onChange={(v) => actions.setProfile("name", v)} />
+          <HeaderField label="Age" value={card.profile.age} inputClass="w-12" text={mode === "export"} locked={locked} inputMode="numeric" maxLength={3} onChange={(v) => actions.setProfile("age", v)} />
+          <HeaderField label="Mentor/Siksha Guru" value={card.profile.mentor} className="flex-1" text={mode === "export"} locked={locked} onChange={(v) => actions.setProfile("mentor", v)} />
+          <HeaderField label="Phone Number" value={card.profile.phone} inputClass="w-32" text={mode === "export"} locked={locked} inputMode="tel" maxLength={16} onChange={(v) => actions.setProfile("phone", v)} />
         </div>
       </header>
 
@@ -200,8 +200,22 @@ function HeaderField(props: {
   inputClass?: string;
   inputMode?: "numeric" | "tel" | "text";
   maxLength?: number;
+  /** PDF / image: plain text that wraps, so long names are never cut off. */
+  text?: boolean;
 }) {
-  const { label, value, locked, onChange, className = "", inputClass = "flex-1", inputMode = "text", maxLength = 40 } = props;
+  const { label, value, locked, onChange, className = "", inputClass = "flex-1", inputMode = "text", maxLength = 40, text = false } = props;
+  if (text) {
+    return (
+      <div className={`flex min-w-0 items-end gap-2 ${className}`}>
+        <span className="shrink-0 whitespace-nowrap">{label}</span>
+        <span
+          className={`min-w-0 border-b border-dashed border-white/80 px-1 pb-0.5 text-[13px] leading-snug font-medium break-words text-white ${inputClass}`}
+        >
+          {value || " "}
+        </span>
+      </div>
+    );
+  }
   return (
     <label className={`flex min-w-0 items-end gap-2 ${className}`}>
       <span className="shrink-0 whitespace-nowrap">{label}</span>
